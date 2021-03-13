@@ -167,4 +167,4 @@ class MatchWindow(Toplevel):
         index = script.find("ytInitialData = ")
         script = script[index+len("ytInitialData = "):-10]
         full_text = json.loads(script)["header"]["c4TabbedHeaderRenderer"]["subscriberCountText"]["simpleText"]
-        self.MatchCanvas.create_text(1416, 45, text=full_text[:-len("\xa0abonnés")], font=["Ubuntu", 20])
+        self.MatchCanvas.create_text(1416, 45, text=full_text.split("\xa0")[0], font=["Ubuntu", 20])
