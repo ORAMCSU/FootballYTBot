@@ -1,6 +1,9 @@
 from tkinter import *
 import PIL.ImageTk
 import PIL.Image
+import requests
+import bs4
+import json
 
 
 class ManagerWindow(Tk):
@@ -57,7 +60,7 @@ class MatchWindow(Toplevel):
         Toplevel.__init__(self, master)
         self.title("Match Stream")
         self.match_urls = url_list
-        print(self.match_urls)
+        self.nb_matches = nb_matches
 
         self.video_url = video_url
         self.MatchCanvas = Canvas(self, width=1536, height=864)
@@ -67,10 +70,13 @@ class MatchWindow(Toplevel):
         self.displayed_logo = None
         self.displayed_black = None
         self.displayed_icons = []
+        self.displayed_teamlogos = []
 
-        self.load_bases(nb_matches)
+        self.load_bases()
+        self.load_video_stats()
+        self.load_match_stats()
 
-    def load_bases(self, nb_matches=1):
+    def load_bases(self):
 
         pil_image = PIL.Image.open("ressources/images/fond_direct.jpg")
         pil_image2 = pil_image.resize((1536, 864))
@@ -89,27 +95,28 @@ class MatchWindow(Toplevel):
 
         pil_image2.close()
         pil_image = PIL.Image.open("ressources/images/affiche_vierge.png")
-        if nb_matches == 1:
+
+        if self.nb_matches == 1:
             pil_image2 = pil_image.resize((1150, 234))
-        elif nb_matches == 2:
+        elif self.nb_matches == 2:
             pil_image2 = pil_image.resize((875, 195))
-        elif nb_matches == 3 or nb_matches == 4:
+        elif self.nb_matches == 3 or self.nb_matches == 4:
             pil_image2 = pil_image.resize((700, 156))
         pil_image.close()
         if pil_image2:
             self.displayed_black = PIL.ImageTk.PhotoImage(pil_image2)
 
-        for i in range(nb_matches):
-            if nb_matches == 1:
+        for i in range(self.nb_matches):
+            if self.nb_matches == 1:
                 self.MatchCanvas.create_image(770, 500, image=self.displayed_black, tag="Black"+str(i))
 
-            elif nb_matches == 2:
+            elif self.nb_matches == 2:
                 self.MatchCanvas.create_image(770, 250*i+350, image=self.displayed_black, tag="Black" + str(i))
 
-            elif nb_matches == 3:
+            elif self.nb_matches == 3:
                 self.MatchCanvas.create_image(770-375*(i == 1)+375*(i == 2), 215*(i > 0)+350,
                                               image=self.displayed_black, tag="Black" + str(i))
-            elif nb_matches == 4:
+            elif self.nb_matches == 4:
                 self.MatchCanvas.create_image(770-375*(i % 2 == 1)+375*(i % 2 == 0), 215*(i > 1)+350,
                                               image=self.displayed_black, tag="Black" + str(i))
 
@@ -127,4 +134,37 @@ class MatchWindow(Toplevel):
         pil_image2.close()
 
     def load_match_stats(self):
-        pass
+        for j in range(self.nb_matches):
+            match_page = requests.get(self.match_urls[j])
+            soup = bs4.BeautifulSoup(match_page.text, "html.parser")
+            if self.nb_matches == 1:
+                i = 0
+                for div in soup.find_all("div", class_="col-xs-4 text-center team"):
+                    self.MatchCanvas.create_text(195*(1-i) + (1-2*i)*300 + 1347*i, 500,
+                                                 text=div.text[1:-1].replace(" ", "\n"), font=["Ubuntu", 30],
+                                                 fill="white", justify="center")
+                    i += 1
+                i = 0
+                for score in soup.find_all(class_="score"):
+                    self.MatchCanvas.create_text(195 * (1 - i) + (1 - 2 * i) * 493 + 1347 * i, 535,
+                                                 text=score.text, font=["Ubuntu", 40],
+                                                 fill="white", justify="center")
+                    i += 1
+
+                i = 0
+                for div in soup.find_all("div", class_="col-xs-4 text-center"):
+                    full_url = "https://www.matchendirect.fr" + div.find("img")["src"].replace("96", "128")
+                    pil_image = PIL.Image.open(requests.get(full_url, stream=True).raw)
+                    self.displayed_teamlogos.append(PIL.ImageTk.PhotoImage(pil_image))
+                    self.MatchCanvas.create_image(195 * (1 - i) + (1 - 2 * i) * 100 + 1347 * i, 500,
+                                                  image=self.displayed_teamlogos[i], tag="Teamlogo" + str(i))
+                    i += 1
+
+    def load_video_stats(self, _video_link=""):
+        channel_page = requests.get("https://www.youtube.com/channel/UCvahkUIQv3F1eYh7BV0CmbQ")
+        soup = bs4.BeautifulSoup(channel_page.text, "html.parser")
+        script = str(soup.find_all("script")[-7])
+        index = script.find("ytInitialData = ")
+        script = script[index+len("ytInitialData = "):-10]
+        full_text = json.loads(script)["header"]["c4TabbedHeaderRenderer"]["subscriberCountText"]["simpleText"]
+        self.MatchCanvas.create_text(1416, 45, text=full_text[:-len("\xa0abonnés")], font=["Ubuntu", 20])
