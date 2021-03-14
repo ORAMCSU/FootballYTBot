@@ -134,6 +134,7 @@ class MatchWindow(Toplevel):
         pil_image2.close()
 
     def load_match_stats(self):
+
         for j in range(self.nb_matches):
             match_page = requests.get(self.match_urls[j])
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
@@ -162,10 +163,31 @@ class MatchWindow(Toplevel):
 
                 minute_text = soup.find(class_="status").text
                 self.MatchCanvas.create_text(767, 448, text=minute_text, font=["Ubuntu", 35],
-                                             justify="center", tag="timer")
+                                             justify="center", tag="timer"+str(j))
+                self.reload_match_score()
+                self.reload_match_timer()
 
-    def load_match(self, iteration=0):
-        pass
+    def reload_match_score(self):
+        for j in range(self.nb_matches):
+            match_page = requests.get(self.match_urls[j])
+            soup = bs4.BeautifulSoup(match_page.text, "html.parser")
+            i = 0
+            for score in soup.find_all(class_="score"):
+                self.MatchCanvas.itemconfigure("score"+str(2*j+i), text=score.text)
+                i += 1
+        print("Scores mis à jour")
+        self.after(10000, self.reload_match_score)
+
+    def reload_match_timer(self):
+        for j in range(self.nb_matches):
+            match_page = requests.get(self.match_urls[j])
+            soup = bs4.BeautifulSoup(match_page.text, "html.parser")
+            i = 0
+            minute_text = soup.find(class_="status").text
+            self.MatchCanvas.itemconfigure("timer"+str(j), text=minute_text)
+
+        print("Timer mis à jour")
+        self.after(58000, self.reload_match_timer)
 
     def load_video_stats(self, _video_link=""):
         channel_page = requests.get("https://www.youtube.com/channel/UCvahkUIQv3F1eYh7BV0CmbQ")
@@ -174,4 +196,5 @@ class MatchWindow(Toplevel):
         index = script.find("ytInitialData = ")
         script = script[index+len("ytInitialData = "):-10]
         full_text = json.loads(script)["header"]["c4TabbedHeaderRenderer"]["subscriberCountText"]["simpleText"]
-        self.MatchCanvas.create_text(1416, 45, text=full_text.split("\xa0")[0], font=["Ubuntu", 20])
+        self.MatchCanvas.create_text(1416, 45, text=full_text.replace(" ", "\xa0").split("\xa0")[0],
+                                     font=["Ubuntu", 20])
