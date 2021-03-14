@@ -142,13 +142,13 @@ class MatchWindow(Toplevel):
                 for div in soup.find_all("div", class_="col-xs-4 text-center team"):
                     self.MatchCanvas.create_text(195*(1-i) + (1-2*i)*300 + 1347*i, 500,
                                                  text=div.text[1:-1].replace(" ", "\n"), font=["Ubuntu", 30],
-                                                 fill="white", justify="center")
+                                                 fill="white", justify="center", tag="TeamName"+str(i))
                     i += 1
                 i = 0
                 for score in soup.find_all(class_="score"):
                     self.MatchCanvas.create_text(195 * (1 - i) + (1 - 2 * i) * 493 + 1347 * i, 535,
                                                  text=score.text, font=["Ubuntu", 40],
-                                                 fill="white", justify="center")
+                                                 fill="white", justify="center", tag="score"+str(i))
                     i += 1
 
                 i = 0
@@ -159,6 +159,13 @@ class MatchWindow(Toplevel):
                     self.MatchCanvas.create_image(195 * (1 - i) + (1 - 2 * i) * 100 + 1347 * i, 500,
                                                   image=self.displayed_teamlogos[i], tag="Teamlogo" + str(i))
                     i += 1
+
+                minute_text = soup.find(class_="status").text
+                self.MatchCanvas.create_text(767, 448, text=minute_text, font=["Ubuntu", 35],
+                                             justify="center", tag="timer")
+
+    def load_match(self, iteration=0):
+        pass
 
     def load_video_stats(self, _video_link=""):
         channel_page = requests.get("https://www.youtube.com/channel/UCvahkUIQv3F1eYh7BV0CmbQ")
