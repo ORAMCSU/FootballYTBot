@@ -175,9 +175,15 @@ class MatchWindow(Toplevel):
                     i += 1
 
                 minute_text = soup.find(class_="status").text
-                if minute_text != "Match terminé":
-                    self.MatchCanvas.create_text(767, 448, text=minute_text, font=["Ubuntu", 35],
+                if minute_text == "Mi-Temps":
+                    self.MatchCanvas.create_text(767, 448, text=minute_text, font=["Ubuntu", 12],
                                                  justify="center", tag="timer"+str(j))
+                elif minute_text == "Match terminé":
+                    self.MatchCanvas.create_text(767, 448, text=minute_text.replace(" ", "\n"), font=["Ubuntu", 12],
+                                                 justify="center", tag="timer" + str(j))
+                else:
+                    self.MatchCanvas.create_text(767, 448, text=minute_text, font=["Ubuntu", 35],
+                                                 justify="center", tag="timer" + str(j))
 
             elif self.nb_matches == 2:
                 i = 0
@@ -203,8 +209,15 @@ class MatchWindow(Toplevel):
                     i += 1
 
                 minute_text = soup.find(class_="status").text
-                self.MatchCanvas.create_text(767, 307+250*j, text=minute_text, font=["Ubuntu", 25],
-                                             justify="center", tag="timer" + str(j))
+                if minute_text == "Mi-Temps":
+                    self.MatchCanvas.create_text(767, 307+250*j, text=minute_text, font=["Ubuntu", 10],
+                                                 justify="center", tag="timer" + str(j))
+                elif minute_text == "Match terminé":
+                    self.MatchCanvas.create_text(767, 307 + 250 * j, text=minute_text.replace(" ", "\n"),
+                                                 font=["Ubuntu", 10], justify="center", tag="timer" + str(j))
+                else:
+                    self.MatchCanvas.create_text(767, 307 + 250 * j, text=minute_text, font=["Ubuntu", 25],
+                                                 justify="center", tag="timer" + str(j))
 
             elif self.nb_matches == 3:
                 i = 0
@@ -233,8 +246,17 @@ class MatchWindow(Toplevel):
                     i += 1
 
                 minute_text = soup.find(class_="status").text
-                self.MatchCanvas.create_text(767-375*(j == 1)+375*(j == 2), 313+215*(j >= 1), text=minute_text,
-                                             font=["Ubuntu", 20], justify="center", tag="timer" + str(j))
+                if minute_text == "Mi-Temps":
+                    self.MatchCanvas.create_text(767-375*(j == 1)+375*(j == 2), 313+215*(j >= 1), text=minute_text,
+                                                 font=["Ubuntu", 7], justify="center", tag="timer" + str(j))
+                elif minute_text == "Match terminé":
+                    self.MatchCanvas.create_text(767 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
+                                                 text=minute_text.replace(" ", "\n"),
+                                                 font=["Ubuntu", 7], justify="center", tag="timer" + str(j))
+                else:
+                    self.MatchCanvas.create_text(767 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
+                                                 text=minute_text.replace(" ", "\n"),
+                                                 font=["Ubuntu", 20], justify="center", tag="timer" + str(j))
 
             elif self.nb_matches == 4:
                 i = 0
@@ -263,8 +285,18 @@ class MatchWindow(Toplevel):
                     i += 1
 
                 minute_text = soup.find(class_="status").text
-                self.MatchCanvas.create_text(767-375*(j % 2 == 0)+375*(j % 2 == 1), 313+215*(j >= 2), text=minute_text,
-                                             font=["Ubuntu", 20], justify="center", tag="timer" + str(j))
+                if minute_text == "Mi-Temps":
+                    self.MatchCanvas.create_text(767-375*(j % 2 == 0)+375*(j % 2 == 1), 313+215*(j >= 2),
+                                                 text=minute_text, font=["Ubuntu", 7],
+                                                 justify="center", tag="timer" + str(j))
+                elif minute_text == "Match terminé":
+                    self.MatchCanvas.create_text(767 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
+                                                 text=minute_text.replace(" ", "\n"), font=["Ubuntu", 7],
+                                                 justify="center", tag="timer" + str(j))
+                else:
+                    self.MatchCanvas.create_text(767 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
+                                                 text=minute_text, font=["Ubuntu", 20],
+                                                 justify="center", tag="timer" + str(j))
 
         self.after(10000, self.reload_match_score)
         self.after(60000, self.reload_match_timer)
@@ -285,8 +317,16 @@ class MatchWindow(Toplevel):
             match_page = requests.get(self.match_urls[j])
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
             minute_text = soup.find(class_="status").text
-            if minute_text != "Match terminé":
-                self.MatchCanvas.itemconfigure("timer"+str(j), text=minute_text)
+            if minute_text == "Mi-Temps":
+                self.MatchCanvas.itemconfigure("timer"+str(j), text=minute_text,
+                                               font=[7 + 3*(self.nb_matches <= 2) + 2*(self.nb_matches == 1)])
+            elif minute_text == "Match terminé":
+                self.MatchCanvas.itemconfigure("timer" + str(j), text=minute_text.replace(" ", "\n"),
+                                               font=[7 + 3*(self.nb_matches <= 2) + 2*(self.nb_matches == 1)])
+            else:
+                self.MatchCanvas.itemconfigure("timer" + str(j), text=minute_text, font=[20 +
+                                                                                         5*(self.nb_matches <= 2) +
+                                                                                         10*(self.nb_matches == 1)])
 
         print("Timer mis à jour")
         self.after(58000, self.reload_match_timer)
