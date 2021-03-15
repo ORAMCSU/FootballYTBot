@@ -199,7 +199,7 @@ class MatchWindow(Toplevel):
                     pil_image = PIL.Image.open(requests.get(full_url, stream=True).raw)
                     self.displayed_teamlogos.append(PIL.ImageTk.PhotoImage(pil_image))
                     self.MatchCanvas.create_image(333 * (1 - i) + (1 - 2 * i) * 80 + 1217 * i, 250*j+350,
-                                                  image=self.displayed_teamlogos[i], tag="Teamlogo" + str(2*j+i))
+                                                  image=self.displayed_teamlogos[2*j+i], tag="Teamlogo" + str(2*j+i))
                     i += 1
 
                 minute_text = soup.find(class_="status").text
@@ -229,7 +229,7 @@ class MatchWindow(Toplevel):
                     self.displayed_teamlogos.append(PIL.ImageTk.PhotoImage(pil_image))
                     self.MatchCanvas.create_image((420-375*(j == 1)+375*(j == 2)) * (1 - i) + (1 - 2 * i) * 70 +
                                                   (1120-375*(j == 1)+375*(j == 2)) * i, 215*(j >= 1)+350,
-                                                  image=self.displayed_teamlogos[i], tag="Teamlogo" + str(2*j+i))
+                                                  image=self.displayed_teamlogos[2*j+i], tag="Teamlogo" + str(2*j+i))
                     i += 1
 
                 minute_text = soup.find(class_="status").text
@@ -259,7 +259,7 @@ class MatchWindow(Toplevel):
                     self.displayed_teamlogos.append(PIL.ImageTk.PhotoImage(pil_image))
                     self.MatchCanvas.create_image((420-375*(j % 2 == 0)+375*(j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
                                                   70 + (1120-375*(j % 2 == 0)+375*(j % 2 == 1)) * i, 215*(j >= 2)+350,
-                                                  image=self.displayed_teamlogos[i], tag="Teamlogo" + str(2*j+i))
+                                                  image=self.displayed_teamlogos[2*j+i], tag="Teamlogo" + str(2*j+i))
                     i += 1
 
                 minute_text = soup.find(class_="status").text
