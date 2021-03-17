@@ -4,6 +4,7 @@ import PIL.Image
 import requests
 import bs4
 import json
+from functools import partial
 
 from pafy import new
 
@@ -14,52 +15,37 @@ class ManagerWindow(Tk):
 
         Tk.__init__(self)
         self.title("Stream Manager")
-        self.old_number = 0
-        self.url_entries = []
 
-        self.MainFrame = Frame(self, width=900, height=700, bg='#4E4E4E')
+        self.MainFrame = SetupFrame(self, width=900, height=700, bg='#4E4E4E')
         self.StreamFrame = Frame(self, width=900, height=200, bg='#4E4E4E')
-        self.MatchButton = Button(self.MainFrame, text="Lancer le suivi", command=self.launch_match, bg='#4E4E4E', fg='white')
-        self.NumberRoll = Spinbox(self.MainFrame, from_=1, to=4, bg='#4E4E4E', fg='white')
-        self.NumberButton = Button(self.MainFrame, text="Valider", command=self.generate_urls, width=10, bg='#4E4E4E', fg='white')
+
         self.VideoEntry = Entry(self.StreamFrame, width=70, bg='#6b6b6b', fg='white')
-        self.VideoButton = Button(self.StreamFrame, text="Charger", command=self.load_video, width=10, bg='#4E4E4E', fg='white')
+        self.VideoButton = Button(self.StreamFrame, text="Charger", command=self.load_video, width=10, bg='#4E4E4E',
+                                  fg='white')
 
         self.MainFrame.grid(row=0, column=0)
         self.StreamFrame.grid(row=1, column=0)
-        Label(self.MainFrame, text="Nombre de matches: ", width=20, bg='#4E4E4E', fg='white').grid(row=0, column=0)
-        self.NumberRoll.grid(row=0, column=1, padx=10, pady=10)
-        self.NumberButton.grid(row=0, column=2, padx=10, pady=10)
+
         Label(self.StreamFrame, text="Url du stream: ", width=20, bg='#4E4E4E', fg='white').grid(row=0, column=0)
         self.VideoEntry.grid(row=0, column=1, padx=10, pady=10)
         self.VideoButton.grid(row=0, column=2, padx=10, pady=10)
 
         self.MatchWindow = None
 
-        self.generate_urls()
+    def launch_match(self, nb_matches, url_list):
 
-    def launch_match(self, _event=None):
+        self.MatchWindow = MatchWindow(master=self, nb_matches=nb_matches, url_list=url_list)
 
-        self.MatchWindow = MatchWindow(master=self, nb_matches=int(self.NumberRoll.get()), url_list=[i.get() for
-                                       i in self.url_entries])
+        if nb_matches == 1:
+            for i in range(nb_matches):
+                Button(self.StreamFrame, command=partial(self.move, "left")).grid(row=1, column=0, rowspan=2)
+                Button(self.StreamFrame, command=partial(self.move, "right")).grid(row=1, column=2, rowspan=2)
+                Button(self.StreamFrame, command=partial(self.move, "up")).grid(row=1, column=1)
+                Button(self.StreamFrame, command=partial(self.move, "down")).grid(row=2, column=1)
 
-    def generate_urls(self, _event=None):
+    def move(self, direction):
 
-        number = int(self.NumberRoll.get())
-        if self.old_number != number:
-            self.MatchButton.grid_forget()
-            if number > self.old_number:
-                for i in range(number-self.old_number):
-                    self.url_entries.append(Entry(self.MainFrame, width=70, bg='#6b6b6b', fg='white'))
-                    self.url_entries[self.old_number+i].grid(row=self.old_number+1+i, column=1, padx=10, pady=10)
-            else:
-                for i in range(self.old_number-number):
-                    self.url_entries[number+i].destroy()
-                self.url_entries = self.url_entries[:number]
-
-            self.old_number = number
-
-            self.MatchButton.grid(row=self.old_number+1, column=1)
+        self.MatchWindow.move("timer0", direction)
 
     def load_video(self):
         if self.VideoEntry.get():
@@ -176,14 +162,14 @@ class MatchWindow(Toplevel):
                     i += 1
 
                 minute_text = soup.find(class_="status").text
-                if minute_text == "Mi-Temps":
-                    self.MatchCanvas.create_text(767, 448, text=minute_text, font=["Ubuntu", 12],
-                                                 justify="center", tag="timer"+str(j))
+                if minute_text == " Mi-temps":
+                    self.MatchCanvas.create_text(767, 448, text=minute_text.strip(" ").replace("-", "-\n"),
+                                                 font=["Ubuntu", 12], justify="center", tag="timer"+str(j))
                 elif minute_text == "Match terminé":
                     self.MatchCanvas.create_text(767, 448, text=minute_text.replace(" ", "\n"), font=["Ubuntu", 12],
                                                  justify="center", tag="timer" + str(j))
                 else:
-                    self.MatchCanvas.create_text(767, 448, text=minute_text, font=["Ubuntu", 35],
+                    self.MatchCanvas.create_text(767, 448, text=minute_text.strip(' '), font=["Ubuntu", 35],
                                                  justify="center", tag="timer" + str(j))
 
             elif self.nb_matches == 2:
@@ -210,14 +196,15 @@ class MatchWindow(Toplevel):
                     i += 1
 
                 minute_text = soup.find(class_="status").text
-                if minute_text == "Mi-Temps":
-                    self.MatchCanvas.create_text(767, 307+250*j, text=minute_text, font=["Ubuntu", 10],
-                                                 justify="center", tag="timer" + str(j))
+
+                if minute_text == " Mi-temps":
+                    self.MatchCanvas.create_text(767, 307+250*j, text=minute_text.strip(" ").replace("-", "-\n"),
+                                                 font=["Ubuntu", 10], justify="center", tag="timer" + str(j))
                 elif minute_text == "Match terminé":
                     self.MatchCanvas.create_text(767, 307 + 250 * j, text=minute_text.replace(" ", "\n"),
                                                  font=["Ubuntu", 10], justify="center", tag="timer" + str(j))
                 else:
-                    self.MatchCanvas.create_text(767, 307 + 250 * j, text=minute_text, font=["Ubuntu", 25],
+                    self.MatchCanvas.create_text(767, 307 + 250 * j, text=minute_text.strip(' '), font=["Ubuntu", 25],
                                                  justify="center", tag="timer" + str(j))
 
             elif self.nb_matches == 3:
@@ -247,16 +234,17 @@ class MatchWindow(Toplevel):
                     i += 1
 
                 minute_text = soup.find(class_="status").text
-                if minute_text == "Mi-Temps":
-                    self.MatchCanvas.create_text(767-375*(j == 1)+375*(j == 2), 313+215*(j >= 1), text=minute_text,
+                if minute_text == " Mi-temps":
+                    self.MatchCanvas.create_text(770-375*(j == 1)+375*(j == 2), 313+215*(j >= 1),
+                                                 text=minute_text.strip(" ").replace("-", "-\n"),
                                                  font=["Ubuntu", 7], justify="center", tag="timer" + str(j))
                 elif minute_text == "Match terminé":
-                    self.MatchCanvas.create_text(767 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
+                    self.MatchCanvas.create_text(770 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
                                                  text=minute_text.replace(" ", "\n"),
                                                  font=["Ubuntu", 7], justify="center", tag="timer" + str(j))
                 else:
-                    self.MatchCanvas.create_text(767 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
-                                                 text=minute_text.replace(" ", "\n"),
+                    self.MatchCanvas.create_text(773 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
+                                                 text=minute_text.strip(' '),
                                                  font=["Ubuntu", 20], justify="center", tag="timer" + str(j))
 
             elif self.nb_matches == 4:
@@ -286,9 +274,9 @@ class MatchWindow(Toplevel):
                     i += 1
 
                 minute_text = soup.find(class_="status").text
-                if minute_text == "Mi-Temps":
+                if minute_text == " Mi-temps":
                     self.MatchCanvas.create_text(767-375*(j % 2 == 0)+375*(j % 2 == 1), 313+215*(j >= 2),
-                                                 text=minute_text, font=["Ubuntu", 7],
+                                                 text=minute_text.strip(" ").replace("-", "-\n"), font=["Ubuntu", 7],
                                                  justify="center", tag="timer" + str(j))
                 elif minute_text == "Match terminé":
                     self.MatchCanvas.create_text(767 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
@@ -296,7 +284,7 @@ class MatchWindow(Toplevel):
                                                  justify="center", tag="timer" + str(j))
                 else:
                     self.MatchCanvas.create_text(767 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
-                                                 text=minute_text, font=["Ubuntu", 20],
+                                                 text=minute_text.strip(' '), font=["Ubuntu", 20],
                                                  justify="center", tag="timer" + str(j))
 
         self.after(10000, self.reload_match_score)
@@ -318,16 +306,15 @@ class MatchWindow(Toplevel):
             match_page = requests.get(self.match_urls[j])
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
             minute_text = soup.find(class_="status").text
-            if minute_text == "Mi-Temps":
-                self.MatchCanvas.itemconfigure("timer"+str(j), text=minute_text,
-                                               font=[7 + 3*(self.nb_matches <= 2) + 2*(self.nb_matches == 1)])
+            if minute_text == " Mi-temps":
+                self.MatchCanvas.itemconfigure("timer"+str(j), text=minute_text.strip(" ").replace("-", "-\n"),
+                                               font=["Ubuntu", 7 + 3*(self.nb_matches <= 2) + 2*(self.nb_matches == 1)])
             elif minute_text == "Match terminé":
                 self.MatchCanvas.itemconfigure("timer" + str(j), text=minute_text.replace(" ", "\n"),
-                                               font=[7 + 3*(self.nb_matches <= 2) + 2*(self.nb_matches == 1)])
+                                               font=["Ubuntu", 7 + 3*(self.nb_matches <= 2) + 2*(self.nb_matches == 1)])
             else:
-                self.MatchCanvas.itemconfigure("timer" + str(j), text=minute_text, font=[20 +
-                                                                                         5*(self.nb_matches <= 2) +
-                                                                                         10*(self.nb_matches == 1)])
+                self.MatchCanvas.itemconfigure("timer" + str(j), text=minute_text.strip(" "), font=["Ubuntu", 20 +
+                                               5*(self.nb_matches <= 2) + 10*(self.nb_matches == 1)])
 
         print("Timer mis à jour")
         self.after(58000, self.reload_match_timer)
@@ -368,3 +355,50 @@ class MatchWindow(Toplevel):
 
         self.after(60000, self.reload_video_stats, video_link, iteration + 1)
         print("Stats mises à jour")
+
+    def move(self, tag, direction):
+        self.MatchCanvas.move(tag, -10*(direction == "left")+10*(direction == "right"),
+                              10*(direction == "down")-10*(direction == "up"))
+
+
+class SetupFrame(Frame):
+
+    def __init__(self, master: ManagerWindow, **kwargs):
+        Frame.__init__(self, master, kwargs)
+        self.old_number = 0
+        self.url_entries = []
+
+        self.MatchButton = Button(self, text="Lancer le suivi", command=self.launch_match, bg='#4E4E4E',
+                                  fg='white')
+        self.NumberRoll = Spinbox(self, from_=1, to=4, bg='#4E4E4E', fg='white')
+        self.NumberButton = Button(self, text="Valider", command=self.generate_urls, width=10, bg='#4E4E4E',
+                                   fg='white')
+
+        Label(self, text="Nombre de matches: ", width=20, bg='#4E4E4E', fg='white').grid(row=0, column=0)
+        self.NumberRoll.grid(row=0, column=1, padx=10, pady=10)
+        self.NumberButton.grid(row=0, column=2, padx=10, pady=10)
+
+        self.generate_urls()
+
+    def generate_urls(self, _event=None):
+
+        number = int(self.NumberRoll.get())
+        if self.old_number != number:
+            self.MatchButton.grid_forget()
+            if number > self.old_number:
+                for i in range(number-self.old_number):
+                    self.url_entries.append(Entry(self, width=70, bg='#6b6b6b', fg='white'))
+                    self.url_entries[self.old_number+i].grid(row=self.old_number+1+i, column=1, padx=10, pady=10)
+            else:
+                for i in range(self.old_number-number):
+                    self.url_entries[number+i].destroy()
+                self.url_entries = self.url_entries[:number]
+
+            self.old_number = number
+
+            self.MatchButton.grid(row=self.old_number+1, column=1)
+
+    def launch_match(self, _event=None):
+
+        self.master.launch_match(nb_matches=int(self.NumberRoll.get()), url_list=[i.get() for
+                                 i in self.url_entries])
