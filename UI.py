@@ -4,6 +4,7 @@ import PIL.Image
 import requests
 import bs4
 import json
+
 from pafy import new
 
 
@@ -16,22 +17,22 @@ class ManagerWindow(Tk):
         self.old_number = 0
         self.url_entries = []
 
-        self.MainFrame = Frame(self, width=500, height=500)
-        self.StreamFrame = Frame(self, width=500, height=40)
-        self.MatchButton = Button(self.MainFrame, text="Lancer le suivi", command=self.launch_match)
-        self.NumberRoll = Spinbox(self.MainFrame, from_=1, to=4)
-        self.NumberButton = Button(self.MainFrame, text="Valider", command=self.generate_urls)
-        self.VideoEntry = Entry(self.StreamFrame)
-        self.VideoButton = Button(self.StreamFrame, text="Charger", command=self.load_video)
+        self.MainFrame = Frame(self, width=900, height=700, bg='#4E4E4E')
+        self.StreamFrame = Frame(self, width=900, height=200, bg='#4E4E4E')
+        self.MatchButton = Button(self.MainFrame, text="Lancer le suivi", command=self.launch_match, bg='#4E4E4E', fg='white')
+        self.NumberRoll = Spinbox(self.MainFrame, from_=1, to=4, bg='#4E4E4E', fg='white')
+        self.NumberButton = Button(self.MainFrame, text="Valider", command=self.generate_urls, width=10, bg='#4E4E4E', fg='white')
+        self.VideoEntry = Entry(self.StreamFrame, width=70, bg='#6b6b6b', fg='white')
+        self.VideoButton = Button(self.StreamFrame, text="Charger", command=self.load_video, width=10, bg='#4E4E4E', fg='white')
 
         self.MainFrame.grid(row=0, column=0)
         self.StreamFrame.grid(row=1, column=0)
-        Label(self.MainFrame, text="Nombre de matches").grid(row=0, column=0)
-        self.NumberRoll.grid(row=0, column=1)
-        self.NumberButton.grid(row=0, column=2)
-        Label(self.StreamFrame, text="Url du stream: ").grid(row=0, column=0)
-        self.VideoEntry.grid(row=0, column=1)
-        self.VideoButton.grid(row=1, column=1)
+        Label(self.MainFrame, text="Nombre de matches: ", width=20, bg='#4E4E4E', fg='white').grid(row=0, column=0)
+        self.NumberRoll.grid(row=0, column=1, padx=10, pady=10)
+        self.NumberButton.grid(row=0, column=2, padx=10, pady=10)
+        Label(self.StreamFrame, text="Url du stream: ", width=20, bg='#4E4E4E', fg='white').grid(row=0, column=0)
+        self.VideoEntry.grid(row=0, column=1, padx=10, pady=10)
+        self.VideoButton.grid(row=0, column=2, padx=10, pady=10)
 
         self.MatchWindow = None
 
@@ -49,8 +50,8 @@ class ManagerWindow(Tk):
             self.MatchButton.grid_forget()
             if number > self.old_number:
                 for i in range(number-self.old_number):
-                    self.url_entries.append(Entry(self.MainFrame))
-                    self.url_entries[self.old_number+i].grid(row=self.old_number+1+i, column=1)
+                    self.url_entries.append(Entry(self.MainFrame, width=70, bg='#6b6b6b', fg='white'))
+                    self.url_entries[self.old_number+i].grid(row=self.old_number+1+i, column=1, padx=10, pady=10)
             else:
                 for i in range(self.old_number-number):
                     self.url_entries[number+i].destroy()
