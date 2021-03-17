@@ -17,18 +17,10 @@ class ManagerWindow(Tk):
         self.title("Stream Manager")
 
         self.MainFrame = SetupFrame(self, width=900, height=700, bg='#4E4E4E')
-        self.StreamFrame = Frame(self, width=900, height=200, bg='#4E4E4E')
-
-        self.VideoEntry = Entry(self.StreamFrame, width=70, bg='#6b6b6b', fg='white')
-        self.VideoButton = Button(self.StreamFrame, text="Charger", command=self.load_video, width=10, bg='#4E4E4E',
-                                  fg='white')
+        self.StreamFrame = EditFrame(self, width=900, height=200, bg='#4E4E4E')
 
         self.MainFrame.grid(row=0, column=0)
         self.StreamFrame.grid(row=1, column=0)
-
-        Label(self.StreamFrame, text="Url du stream: ", width=20, bg='#4E4E4E', fg='white').grid(row=0, column=0)
-        self.VideoEntry.grid(row=0, column=1, padx=10, pady=10)
-        self.VideoButton.grid(row=0, column=2, padx=10, pady=10)
 
         self.MatchWindow = None
 
@@ -36,20 +28,17 @@ class ManagerWindow(Tk):
 
         self.MatchWindow = MatchWindow(master=self, nb_matches=nb_matches, url_list=url_list)
 
-        if nb_matches == 1:
-            for i in range(nb_matches):
-                Button(self.StreamFrame, command=partial(self.move, "left")).grid(row=1, column=0, rowspan=2)
-                Button(self.StreamFrame, command=partial(self.move, "right")).grid(row=1, column=2, rowspan=2)
-                Button(self.StreamFrame, command=partial(self.move, "up")).grid(row=1, column=1)
-                Button(self.StreamFrame, command=partial(self.move, "down")).grid(row=2, column=1)
+        self.StreamFrame.load_edit(nb_matches)
 
-    def move(self, direction):
+    def move(self, tag, direction):
 
-        self.MatchWindow.move("timer0", direction)
+        self.MatchWindow.move(tag, direction)
 
-    def load_video(self):
-        if self.VideoEntry.get():
-            self.MatchWindow.load_video_stats(self.VideoEntry.get())
+    def load_video(self, video_url):
+        self.MatchWindow.load_video_stats(video_url)
+
+    def is_stream_on(self):
+        return not(self.MatchWindow is None)
 
 
 class MatchWindow(Toplevel):
@@ -356,9 +345,12 @@ class MatchWindow(Toplevel):
         self.after(60000, self.reload_video_stats, video_link, iteration + 1)
         print("Stats mises à jour")
 
-    def move(self, tag, direction):
-        self.MatchCanvas.move(tag, -10*(direction == "left")+10*(direction == "right"),
-                              10*(direction == "down")-10*(direction == "up"))
+    def move(self, tag, direction: tuple):
+        if direction[0]*direction[1] == 0:
+            self.MatchCanvas.move(tag, 10*direction[0], 10*direction[1])
+        else:
+            current = self.MatchCanvas.itemcget(tag, "font").split(" ")
+            self.MatchCanvas.itemconfigure(tag, font=[current[0], int(current[1])+direction[0]])
 
 
 class SetupFrame(Frame):
@@ -402,3 +394,72 @@ class SetupFrame(Frame):
 
         self.master.launch_match(nb_matches=int(self.NumberRoll.get()), url_list=[i.get() for
                                  i in self.url_entries])
+
+
+class EditFrame(Frame):
+
+    def __init__(self, master, **kwargs):
+        Frame.__init__(self, master, kwargs)
+        self.nb_matches = 0
+
+        self.VideoEntry = Entry(self, width=70, bg='#6b6b6b', fg='white')
+        self.VideoButton = Button(self, text="Charger", command=self.load_video, width=10, bg='#4E4E4E',
+                                  fg='white')
+
+        self.SubFrame = Frame(self)
+
+        Label(self, text="Url du stream: ", width=20, bg='#4E4E4E', fg='white').grid(row=0, column=0)
+        self.VideoEntry.grid(row=0, column=1, padx=10, pady=10)
+        self.VideoButton.grid(row=0, column=2, padx=10, pady=10)
+        self.SubFrame.grid(row=1, column=0, columnspan=3)
+
+    def load_video(self):
+
+        if self.master.is_stream_on():
+            if self.VideoEntry.get():
+                self.master.load_video(self.VideoEntry.get())
+
+    def move(self, tag, direction):
+
+        self.master.move(tag, direction)
+
+    def load_edit(self, val):
+        self.nb_matches = val
+
+        for i in self.SubFrame.grid_slaves():
+            i.destroy()
+
+        for i in range(self.nb_matches):
+            Label(self.SubFrame, text="Match " + str(i + 1) + " - Timer :").grid(row=2 * i, column=0, rowspan=2)
+            Button(self.SubFrame, text="\U000025C4",
+                   command=partial(self.move, "timer"+str(i), (-1, 0))).grid(row=2*i, column=1, rowspan=2)
+            Button(self.SubFrame, text="\U000025BA",
+                   command=partial(self.move, "timer"+str(i), (1, 0))).grid(row=2*i, column=3, rowspan=2)
+            Button(self.SubFrame, text="\U000025B2",
+                   command=partial(self.move, "timer"+str(i), (0, -1))).grid(row=2*i, column=2)
+            Button(self.SubFrame, text="\U000025BC",
+                   command=partial(self.move, "timer"+str(i), (0, 1))).grid(row=2*i+1, column=2)
+            Button(self.SubFrame, text="\U000025B2",
+                   command=partial(self.move, "timer" + str(i), (1, 1))).grid(row=2*i, column=4)
+            Button(self.SubFrame, text="\U000025BC",
+                   command=partial(self.move, "timer" + str(i), (-1, -1))).grid(row=2*i+1, column=4)
+
+            for j in range(2):
+                Label(self.SubFrame, text="Equipe "+str(j+1)+" :").grid(row=2*i, column=5*(j+1), rowspan=2)
+                Button(self.SubFrame, text="\U000025C4",
+                       command=partial(self.move, "TeamName" + str(2*i+j),
+                                           (-1, 0))).grid(row=2*i, column=5*(j+1)+1, rowspan=2)
+                Button(self.SubFrame, text="\U000025BA",
+                       command=partial(self.move, "TeamName" + str(2*i+j),
+                                           (1, 0))).grid(row=2*i, column=5*(j+1)+3, rowspan=2)
+                Button(self.SubFrame, text="\U000025B2",
+                       command=partial(self.move, "TeamName" + str(2*i+j),
+                                           (0, -1))).grid(row=2*i, column=5*(j+1)+2)
+                Button(self.SubFrame, text="\U000025BC",
+                       command=partial(self.move, "TeamName" + str(2*i+j),
+                                           (0, 1))).grid(row=2*i+1, column=5*(j+1)+2)
+                Button(self.SubFrame, text="\U000025B2",
+                       command=partial(self.move, "TeamName" + str(2*i+j), (1, 1))).grid(row=2*i, column=5*(j+1)+4)
+                Button(self.SubFrame, text="\U000025BC",
+                       command=partial(self.move, "TeamName" + str(2*i+j),
+                                           (-1, -1))).grid(row=2*i+1, column=5*(j+1)+4)
