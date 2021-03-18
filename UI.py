@@ -361,7 +361,7 @@ class MatchWindow(Toplevel):
             if a is not None:
                 a = a.text
                 b = soup.find(id="commentaire").find_all("td")[2].text
-                self.MatchCanvas.itemconfigure("score"+str(j), text=a + " : " + b)
+                self.MatchCanvas.itemconfigure("commentaire"+str(j), text=a + " : " + b)
         print("Commentaires mis à jour")
         self.after(58000, self.reload_match_commentaire)
 
