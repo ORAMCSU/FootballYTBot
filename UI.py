@@ -1,4 +1,5 @@
 from tkinter import *
+from tkinter import ttk
 import PIL.ImageTk
 import PIL.Image
 import requests
@@ -15,6 +16,7 @@ class ManagerWindow(Tk):
 
         Tk.__init__(self)
         self.title("Stream Manager")
+        self.configure(bg='#4E4E4E')
 
         self.MainFrame = SetupFrame(self, width=900, height=700, bg='#4E4E4E')
         self.StreamFrame = EditFrame(self, width=900, height=200, bg='#4E4E4E')
@@ -151,14 +153,18 @@ class MatchWindow(Toplevel):
                     i += 1
 
                 minute_text = soup.find(class_="status").text
-                if minute_text == " Mi-temps":
-                    self.MatchCanvas.create_text(767, 448, text=minute_text.strip(" ").replace("-", "-\n"),
+
+                if minute_text.split(" ")[0] == "Coup":
+                    self.MatchCanvas.create_text(771, 448, text="Coup\nd'envoi",
+                                                 font=["Ubuntu", 12], justify="center", tag="timer" + str(j))
+                elif minute_text == " Mi-temps":
+                    self.MatchCanvas.create_text(771, 448, text=minute_text.strip(" ").replace("-", "-\n"),
                                                  font=["Ubuntu", 12], justify="center", tag="timer"+str(j))
                 elif minute_text == "Match terminé":
-                    self.MatchCanvas.create_text(767, 448, text=minute_text.replace(" ", "\n"), font=["Ubuntu", 12],
+                    self.MatchCanvas.create_text(771, 448, text=minute_text.replace(" ", "\n"), font=["Ubuntu", 12],
                                                  justify="center", tag="timer" + str(j))
                 else:
-                    self.MatchCanvas.create_text(767, 448, text=minute_text.strip(' '), font=["Ubuntu", 35],
+                    self.MatchCanvas.create_text(771, 448, text=minute_text.strip(' '), font=["Ubuntu", 35],
                                                  justify="center", tag="timer" + str(j))
 
             elif self.nb_matches == 2:
@@ -186,14 +192,17 @@ class MatchWindow(Toplevel):
 
                 minute_text = soup.find(class_="status").text
 
-                if minute_text == " Mi-temps":
-                    self.MatchCanvas.create_text(767, 307+250*j, text=minute_text.strip(" ").replace("-", "-\n"),
+                if minute_text.split(" ")[1] == "Coup":
+                    self.MatchCanvas.create_text(771, 307 + 250 * j, text="Coup \n d'envoi",
+                                                 font=["Ubuntu", 10], justify="center", tag="timer" + str(j))
+                elif minute_text == " Mi-temps":
+                    self.MatchCanvas.create_text(771, 307+250*j, text=minute_text.strip(" ").replace("-", "-\n"),
                                                  font=["Ubuntu", 10], justify="center", tag="timer" + str(j))
                 elif minute_text == "Match terminé":
-                    self.MatchCanvas.create_text(767, 307 + 250 * j, text=minute_text.replace(" ", "\n"),
+                    self.MatchCanvas.create_text(771, 307 + 250 * j, text=minute_text.replace(" ", "\n"),
                                                  font=["Ubuntu", 10], justify="center", tag="timer" + str(j))
                 else:
-                    self.MatchCanvas.create_text(767, 307 + 250 * j, text=minute_text.strip(' '), font=["Ubuntu", 25],
+                    self.MatchCanvas.create_text(771, 307 + 250 * j, text=minute_text.strip(' '), font=["Ubuntu", 25],
                                                  justify="center", tag="timer" + str(j))
 
             elif self.nb_matches == 3:
@@ -223,16 +232,21 @@ class MatchWindow(Toplevel):
                     i += 1
 
                 minute_text = soup.find(class_="status").text
-                if minute_text == " Mi-temps":
-                    self.MatchCanvas.create_text(770-375*(j == 1)+375*(j == 2), 313+215*(j >= 1),
+
+                if minute_text.split(" ")[0] == "Coup":
+                    self.MatchCanvas.create_text(771 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
+                                                 text="Coup\nd'envoi",
+                                                 font=["Ubuntu", 7], justify="center", tag="timer" + str(j))
+                elif minute_text == " Mi-temps":
+                    self.MatchCanvas.create_text(771-375*(j == 1)+375*(j == 2), 313+215*(j >= 1),
                                                  text=minute_text.strip(" ").replace("-", "-\n"),
                                                  font=["Ubuntu", 7], justify="center", tag="timer" + str(j))
                 elif minute_text == "Match terminé":
-                    self.MatchCanvas.create_text(770 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
+                    self.MatchCanvas.create_text(771 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
                                                  text=minute_text.replace(" ", "\n"),
                                                  font=["Ubuntu", 7], justify="center", tag="timer" + str(j))
                 else:
-                    self.MatchCanvas.create_text(773 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
+                    self.MatchCanvas.create_text(771 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
                                                  text=minute_text.strip(' '),
                                                  font=["Ubuntu", 20], justify="center", tag="timer" + str(j))
 
@@ -263,16 +277,21 @@ class MatchWindow(Toplevel):
                     i += 1
 
                 minute_text = soup.find(class_="status").text
-                if minute_text == " Mi-temps":
-                    self.MatchCanvas.create_text(767-375*(j % 2 == 0)+375*(j % 2 == 1), 313+215*(j >= 2),
+
+                if minute_text.split(" ")[0] == "Coup":
+                    self.MatchCanvas.create_text(771 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
+                                                 text="Coup\nd'envoi", font=["Ubuntu", 7],
+                                                 justify="center", tag="timer" + str(j))
+                elif minute_text == " Mi-temps":
+                    self.MatchCanvas.create_text(771-375*(j % 2 == 0)+375*(j % 2 == 1), 313+215*(j >= 2),
                                                  text=minute_text.strip(" ").replace("-", "-\n"), font=["Ubuntu", 7],
                                                  justify="center", tag="timer" + str(j))
                 elif minute_text == "Match terminé":
-                    self.MatchCanvas.create_text(767 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
+                    self.MatchCanvas.create_text(771 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
                                                  text=minute_text.replace(" ", "\n"), font=["Ubuntu", 7],
                                                  justify="center", tag="timer" + str(j))
                 else:
-                    self.MatchCanvas.create_text(767 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
+                    self.MatchCanvas.create_text(771 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
                                                  text=minute_text.strip(' '), font=["Ubuntu", 20],
                                                  justify="center", tag="timer" + str(j))
 
@@ -406,7 +425,7 @@ class EditFrame(Frame):
         self.VideoButton = Button(self, text="Charger", command=self.load_video, width=10, bg='#4E4E4E',
                                   fg='white')
 
-        self.SubFrame = Frame(self)
+        self.SubFrame = Frame(self, bg='#4E4E4E')
 
         Label(self, text="Url du stream: ", width=20, bg='#4E4E4E', fg='white').grid(row=0, column=0)
         self.VideoEntry.grid(row=0, column=1, padx=10, pady=10)
@@ -429,37 +448,57 @@ class EditFrame(Frame):
         for i in self.SubFrame.grid_slaves():
             i.destroy()
 
+        ttk.Separator(self.SubFrame, orient="horizontal").grid(row=0, column=0, columnspan=20,
+                                                               sticky="we", pady=4)
+
         for i in range(self.nb_matches):
-            Label(self.SubFrame, text="Match " + str(i + 1) + " - Timer :").grid(row=2 * i, column=0, rowspan=2)
-            Button(self.SubFrame, text="\U000025C4",
-                   command=partial(self.move, "timer"+str(i), (-1, 0))).grid(row=2*i, column=1, rowspan=2)
-            Button(self.SubFrame, text="\U000025BA",
-                   command=partial(self.move, "timer"+str(i), (1, 0))).grid(row=2*i, column=3, rowspan=2)
-            Button(self.SubFrame, text="\U000025B2",
-                   command=partial(self.move, "timer"+str(i), (0, -1))).grid(row=2*i, column=2)
-            Button(self.SubFrame, text="\U000025BC",
-                   command=partial(self.move, "timer"+str(i), (0, 1))).grid(row=2*i+1, column=2)
-            Button(self.SubFrame, text="\U000025B2",
-                   command=partial(self.move, "timer" + str(i), (1, 1))).grid(row=2*i, column=4)
-            Button(self.SubFrame, text="\U000025BC",
-                   command=partial(self.move, "timer" + str(i), (-1, -1))).grid(row=2*i+1, column=4)
+            Label(self.SubFrame, text="Match " + str(i + 1),
+                  bg='#4E4E4E', fg='white').grid(row=3*i+1, column=1, rowspan=2, padx=10, pady=10)
+            ttk.Separator(self.SubFrame, orient="vertical").grid(row=3*i+1, column=2, rowspan=2,
+                                                                 sticky="ns", padx=10, pady=4)
+            Label(self.SubFrame, text="Timer :",
+                  bg='#4E4E4E', fg='white').grid(row=3*i+1, column=3, rowspan=2, padx=10, pady=10)
+            Button(self.SubFrame, text="\U000025C0", fg='white',
+                   command=partial(self.move, "timer"+str(i), (-1, 0)),
+                   bg='#4E4E4E').grid(row=3*i+1, column=4, rowspan=2, padx=5, pady=10, sticky='e')
+            Button(self.SubFrame, text="\U000025B6", fg='white',
+                   command=partial(self.move, "timer"+str(i), (1, 0)),
+                   bg='#4E4E4E').grid(row=3*i+1, column=6, rowspan=2, padx=5, pady=10, sticky='w')
+            Button(self.SubFrame, text="\U000025B2", fg='white',
+                   command=partial(self.move, "timer"+str(i), (0, -1)),
+                   bg='#4E4E4E').grid(row=3*i+1, column=5, padx=5, pady=10)
+            Button(self.SubFrame, text="\U000025BC", fg='white',
+                   command=partial(self.move, "timer"+str(i), (0, 1)),
+                   bg='#4E4E4E').grid(row=3*i+2, column=5, padx=5, pady=10)
+            Button(self.SubFrame, text="\U000025B2", fg='white',
+                   command=partial(self.move, "timer" + str(i), (1, 1)),
+                   bg='#4E4E4E').grid(row=3*i+1, column=7, padx=10, pady=10)
+            Button(self.SubFrame, text="\U000025BC", fg='white',
+                   command=partial(self.move, "timer" + str(i), (-1, -1)),
+                   bg='#4E4E4E').grid(row=3*i+2, column=7, padx=10, pady=10)
+            ttk.Separator(self.SubFrame, orient="horizontal").grid(row=3*i+3, column=0, columnspan=20,
+                                                                   sticky="we", pady=4)
 
             for j in range(2):
-                Label(self.SubFrame, text="Equipe "+str(j+1)+" :").grid(row=2*i, column=5*(j+1), rowspan=2)
-                Button(self.SubFrame, text="\U000025C4",
-                       command=partial(self.move, "TeamName" + str(2*i+j),
-                                           (-1, 0))).grid(row=2*i, column=5*(j+1)+1, rowspan=2)
-                Button(self.SubFrame, text="\U000025BA",
-                       command=partial(self.move, "TeamName" + str(2*i+j),
-                                           (1, 0))).grid(row=2*i, column=5*(j+1)+3, rowspan=2)
-                Button(self.SubFrame, text="\U000025B2",
-                       command=partial(self.move, "TeamName" + str(2*i+j),
-                                           (0, -1))).grid(row=2*i, column=5*(j+1)+2)
-                Button(self.SubFrame, text="\U000025BC",
-                       command=partial(self.move, "TeamName" + str(2*i+j),
-                                           (0, 1))).grid(row=2*i+1, column=5*(j+1)+2)
-                Button(self.SubFrame, text="\U000025B2",
-                       command=partial(self.move, "TeamName" + str(2*i+j), (1, 1))).grid(row=2*i, column=5*(j+1)+4)
-                Button(self.SubFrame, text="\U000025BC",
-                       command=partial(self.move, "TeamName" + str(2*i+j),
-                                           (-1, -1))).grid(row=2*i+1, column=5*(j+1)+4)
+                ttk.Separator(self.SubFrame, orient="vertical").grid(row=3*i+1, column=6*(j+1)+2, rowspan=2,
+                                                                     sticky="ns", padx=10, pady=4)
+                Label(self.SubFrame, text="Equipe "+str(j+1)+" :",
+                      bg='#4E4E4E', fg='white').grid(row=3*i+1, column=6*(j+1)+3, rowspan=2, padx=10, pady=10)
+                Button(self.SubFrame, text="\U000025C0", fg='white',
+                       command=partial(self.move, "TeamName" + str(2*i+j), (-1, 0)),
+                       bg='#4E4E4E').grid(row=3*i+1, column=6*(j+1)+4, rowspan=2, padx=5, pady=10)
+                Button(self.SubFrame, text="\U000025B6", fg='white',
+                       command=partial(self.move, "TeamName" + str(2*i+j), (1, 0)),
+                       bg='#4E4E4E').grid(row=3*i+1, column=6*(j+2), rowspan=2, padx=5, pady=10)
+                Button(self.SubFrame, text="\U000025B2", fg='white',
+                       command=partial(self.move, "TeamName" + str(2*i+j), (0, -1)),
+                       bg='#4E4E4E').grid(row=3*i+1, column=6*(j+1)+5, padx=5, pady=10)
+                Button(self.SubFrame, text="\U000025BC", fg='white',
+                       command=partial(self.move, "TeamName" + str(2*i+j), (0, 1)),
+                       bg='#4E4E4E').grid(row=3*i+2, column=6*(j+1)+5, padx=5, pady=10)
+                Button(self.SubFrame, text="\U000025B2", fg='white',
+                       command=partial(self.move, "TeamName" + str(2*i+j), (1, 1)),
+                       bg='#4E4E4E').grid(row=3*i+1, column=6*(j+2)+1, padx=10, pady=10)
+                Button(self.SubFrame, text="\U000025BC", fg='white',
+                       command=partial(self.move, "TeamName" + str(2*i+j), (-1, -1)),
+                       bg='#4E4E4E').grid(row=3*i+2, column=6*(j+2)+1, padx=10, pady=10)
