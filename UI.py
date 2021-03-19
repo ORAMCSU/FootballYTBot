@@ -136,6 +136,7 @@ class MatchWindow(Toplevel):
                                                  text=div.text[1:-1].replace(" ", "\n"), font=["Ubuntu", 30],
                                                  fill="white", justify="center", tag="TeamName"+str(i))
                     i += 1
+
                 i = 0
                 for score in soup.find_all(class_="score"):
                     self.MatchCanvas.create_text(195 * (1 - i) + (1 - 2 * i) * 493 + 1347 * i, 535,
@@ -144,13 +145,14 @@ class MatchWindow(Toplevel):
                     i += 1
 
                 a = soup.find(class_="bg-primary")
+                self.MatchCanvas.create_rectangle(221, 640, 1321, 700, tag="bg" + str(j), width=0)
+                self.MatchCanvas.create_text(771, 670, text="", font=["Arial", 12],
+                                             fill="black", tag="commentaire" + str(j), width=1100)
                 if a is not None:
                     a = a.text
                     b = soup.find(id="commentaire").find_all("td")[2].text
-                    self.MatchCanvas.create_rectangle(221, 640, 1321, 700, fill="#E5E4E1", width=0)
-                    self.MatchCanvas.create_text(771, 670,
-                                                 text=a + " : " + b, font=["Arial", 12],
-                                                 fill="black", tag="commentaire" + str(j), width=1100)
+                    self.MatchCanvas.itemconfigure("bg"+str(j), fill="#E5E4E1")
+                    self.MatchCanvas.itemconfigure("commentaire"+str(j), text=a + " : " + b)
 
                 i = 0
                 for div in soup.find_all("div", class_="col-xs-4 text-center"):
@@ -183,6 +185,7 @@ class MatchWindow(Toplevel):
                                                  text=div.text[1:-1].replace(" ", "\n"), font=["Ubuntu", 22],
                                                  fill="white", justify="center", tag="TeamName" + str(2*j+i))
                     i += 1
+
                 i = 0
                 for score in soup.find_all(class_="score"):
                     self.MatchCanvas.create_text(325 * (1 - i) + (1 - 2 * i) * 383 + 1217 * i, 270*j+380,
@@ -191,13 +194,15 @@ class MatchWindow(Toplevel):
                     i += 1
 
                 a = soup.find(class_="bg-primary")
+                self.MatchCanvas.create_rectangle(360, 457 + 270 * j, 1180, 518 + 270 * j, width=0)
+                self.MatchCanvas.create_text(771, 490 + 270 * j,
+                                             text="", font=["Arial", 10],
+                                             fill="black", tag="commentaire" + str(j), width=800)
                 if a is not None:
                     a = a.text
                     b = soup.find(id="commentaire").find_all("td")[2].text
-                    self.MatchCanvas.create_rectangle(360, 457 + 270*j, 1180, 518 + 270*j, fill="#E5E4E1", width=0)
-                    self.MatchCanvas.create_text(771, 490 + 270 * j,
-                                                 text=a + " : " + b, font=["Arial", 10],
-                                                 fill="black", tag="commentaire" + str(j), width=800)
+                    self.MatchCanvas.itemconfigure("bg" + str(j), fill="#E5E4E1")
+                    self.MatchCanvas.itemconfigure("commentaire" + str(j), text=a + " : " + b)
 
                 i = 0
                 for div in soup.find_all("div", class_="col-xs-4 text-center"):
@@ -231,6 +236,7 @@ class MatchWindow(Toplevel):
                                                  text=div.text[1:-1].replace(" ", "\n"), font=["Ubuntu", 20],
                                                  fill="white", justify="center", tag="TeamName" + str(2*j+i))
                     i += 1
+
                 i = 0
                 for score in soup.find_all(class_="score"):
                     self.MatchCanvas.create_text((420-375*(j == 1)+375*(j == 2)) * (1 - i) + (1 - 2 * i) * 300 +
@@ -240,17 +246,18 @@ class MatchWindow(Toplevel):
                     i += 1
 
                 a = soup.find(class_="bg-primary")
+                self.MatchCanvas.create_rectangle(50 + 375 * (j == 0) + 750 * (j == 2), 435 + 215 * (j >= 1),
+                                                  740 + 375 * (j == 0) + 750 * (j == 2), 482 + 215 * (j >= 1),
+                                                  width=0)
+                self.MatchCanvas.create_text((575 - 375 * (j == 1) + 375 * (j == 2)) * (1 - i) + (1 - 2 * i) * 300 +
+                                             (1122 - 375 * (j == 1) + 375 * (j == 2)) * i, 215 * (j >= 1) + 458,
+                                             text="", font=["Arial", 8],
+                                             fill="black", tag="commentaire" + str(j), width=680)
                 if a is not None:
                     a = a.text
                     b = soup.find(id="commentaire").find_all("td")[2].text
-                    self.MatchCanvas.create_rectangle(50 + 375 * (j == 0) + 750 * (j == 2), 435 + 215 * (j >= 1),
-                                                      740 + 375 * (j == 0) + 750 * (j == 2), 482 + 215 * (j >= 1),
-                                                      fill="#E5E4E1", width=0)
-                    self.MatchCanvas.create_text(
-                        (575 - 375 * (j == 1) + 375 * (j == 2)) * (1 - i) + (1 - 2 * i) *
-                        300 + (1122 - 375 * (j == 1) + 375 * (j == 2)) * i, 215 * (j >= 1) + 458,
-                        text=a + " : " + b, font=["Arial", 8],
-                        fill="black", tag="commentaire" + str(j), width=680)
+                    self.MatchCanvas.itemconfigure("bg"+str(j), fill="#E5E4E1")
+                    self.MatchCanvas.itemconfigure("commentaire"+str(j), text=a + " : " + b)
 
                 i = 0
                 for div in soup.find_all("div", class_="col-xs-4 text-center"):
@@ -289,6 +296,7 @@ class MatchWindow(Toplevel):
                                                  text=div.text[1:-1].replace(" ", "\n"), font=["Ubuntu", 20],
                                                  fill="white", justify="center", tag="TeamName" + str(2*j+i))
                     i += 1
+
                 i = 0
                 for score in soup.find_all(class_="score"):
                     self.MatchCanvas.create_text((420-375*(j % 2 == 0)+375*(j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
@@ -298,16 +306,19 @@ class MatchWindow(Toplevel):
                     i += 1
 
                 a = soup.find(class_="bg-primary")
+                self.MatchCanvas.create_rectangle(50 + 750 * (j % 2 == 1), 435 + 215 * (j >= 2),
+                                                  740 + 750 * (j % 2 == 1), 482 + 215 * (j >= 2),
+                                                  width=0)
+                self.MatchCanvas.create_text((575 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
+                                             300 + (1122 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i,
+                                             215 * (j >= 2) + 458,
+                                             text="", font=["Arial", 8],
+                                             fill="black", tag="commentaire" + str(j), width=680)
                 if a is not None:
                     a = a.text
                     b = soup.find(id="commentaire").find_all("td")[2].text
-                    self.MatchCanvas.create_rectangle(50+750*(j % 2 == 1), 435 + 215*(j >= 2),
-                                                 740+750*(j % 2 == 1), 482 + 215*(j >= 2),
-                                                 fill="#E5E4E1", width=0)
-                    self.MatchCanvas.create_text((575-375*(j % 2 == 0)+375*(j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
-                                                 300 + (1122-375*(j % 2 == 0)+375*(j % 2 == 1)) * i, 215*(j >= 2)+458,
-                                                 text=a + " : " + b, font=["Arial", 8],
-                                                 fill="black", tag="commentaire" + str(j), width=680)
+                    self.MatchCanvas.itemconfigure("bg"+str(j), fill="#E5E4E1")
+                    self.MatchCanvas.itemconfigure("commentaire"+str(j), text=a + " : " + b)
 
                 i = 0
                 for div in soup.find_all("div", class_="col-xs-4 text-center"):
@@ -361,7 +372,8 @@ class MatchWindow(Toplevel):
             if a is not None:
                 a = a.text
                 b = soup.find(id="commentaire").find_all("td")[2].text
-                self.MatchCanvas.itemconfigure("commentaire"+str(j), text=a + " : " + b)
+                self.MatchCanvas.itemconfigure("bg" + str(j), fill="#E5E4E1")
+                self.MatchCanvas.itemconfigure("commentaire" + str(j), text=a + " : " + b)
         print("Commentaires mis à jour")
         self.after(58000, self.reload_match_commentaire)
 
