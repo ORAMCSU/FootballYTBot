@@ -6,7 +6,7 @@ import requests
 import bs4
 import json
 from functools import partial
-
+from pygame import mixer
 from pafy import new
 
 
@@ -51,6 +51,7 @@ class MatchWindow(Toplevel):
         self.title("Match Stream")
         self.match_urls = url_list
         self.nb_matches = nb_matches
+        self.gif = []
 
         self.video_url = video_url
         self.MatchCanvas = Canvas(self, width=1536, height=864)
@@ -62,6 +63,7 @@ class MatchWindow(Toplevel):
         self.displayed_icons = []
         self.displayed_teamlogos = []
 
+        self.after(10000, self.playback)
         self.load_bases()
         self.load_channel_stats()
         self.load_match_stats()
@@ -123,7 +125,20 @@ class MatchWindow(Toplevel):
 
         pil_image2.close()
 
+    def load_gif(self):
+
+        gifimg = PIL.Image.open("./ressources/images/gif-eye.gif")
+
+        for i in range(55):
+            gifimg.seek(i)
+            self.gif.append(PIL.ImageTk.PhotoImage(gifimg.copy().resize((30, 30))))
+
+        self.MatchCanvas.create_image(770, 430, image=self.gif[0], tag="gif")
+        self.after(100, self.play_gif, 1, 2000 // 55)
+
     def load_match_stats(self):
+
+        font_sizes = ((30, 40, 12, (12, 35)), (22, 40, 10, (10, 25)), (20, 35, 8, (7, 20)), (20, 35, 8, (7, 20)))
 
         for j in range(self.nb_matches):
             match_page = requests.get(self.match_urls[j])
@@ -132,8 +147,7 @@ class MatchWindow(Toplevel):
             if self.nb_matches == 1:
                 i = 0
                 for div in soup.find_all("div", class_="col-xs-4 text-center team"):
-                    self.MatchCanvas.create_text(195*(1-i) + (1-2*i)*300 + 1347*i, 500,
-                                                 text=div.text[1:-1].replace(" ", "\n"), font=["Ubuntu", 30],
+                    self.MatchCanvas.create_text(195*(1-i) + (1-2*i)*300 + 1347*i, 500, font=["Ubuntu", 30],
                                                  fill="white", justify="center", tag="TeamName"+str(i))
                     i += 1
 
@@ -162,8 +176,8 @@ class MatchWindow(Toplevel):
                     full_url = "https://www.matchendirect.fr" + div.find("img")["src"].replace("/96/", "/128/")
                     pil_image = PIL.Image.open(requests.get(full_url, stream=True).raw)
                     self.displayed_teamlogos.append(PIL.ImageTk.PhotoImage(pil_image))
-                    self.MatchCanvas.create_image(195 * (1 - i) + (1 - 2 * i) * 100 + 1347 * i, 500,
-                                                  image=self.displayed_teamlogos[i], tag="Teamlogo" + str(i))
+                    self.MatchCanvas.create_image(195 * (1 - i) + (1 - 2 * i) * 100 + 1347 * i, 500, tag="Teamlogo" +
+                                                                                                         str(2*j+i))
                     i += 1
 
                 minute_text = soup.find(class_="status").text
@@ -184,8 +198,7 @@ class MatchWindow(Toplevel):
             elif self.nb_matches == 2:
                 i = 0
                 for div in soup.find_all("div", class_="col-xs-4 text-center team"):
-                    self.MatchCanvas.create_text(333 * (1 - i) + (1 - 2 * i) * 220 + 1217 * i, 270*j+350,
-                                                 text=div.text[1:-1].replace(" ", "\n"), font=["Ubuntu", 22],
+                    self.MatchCanvas.create_text(333 * (1 - i) + (1 - 2 * i) * 220 + 1217 * i, 270*j+350, font=["Ubuntu", 22],
                                                  fill="white", justify="center", tag="TeamName" + str(2*j+i))
                     i += 1
 
@@ -216,7 +229,7 @@ class MatchWindow(Toplevel):
                     pil_image = PIL.Image.open(requests.get(full_url, stream=True).raw)
                     self.displayed_teamlogos.append(PIL.ImageTk.PhotoImage(pil_image))
                     self.MatchCanvas.create_image(333 * (1 - i) + (1 - 2 * i) * 80 + 1207 * i, 270*j+350,
-                                                  image=self.displayed_teamlogos[2*j+i], tag="Teamlogo" + str(2*j+i))
+                                                  tag="Teamlogo" + str(2*j+i))
                     i += 1
 
                 minute_text = soup.find(class_="status").text
@@ -238,8 +251,7 @@ class MatchWindow(Toplevel):
                 i = 0
                 for div in soup.find_all("div", class_="col-xs-4 text-center team"):
                     self.MatchCanvas.create_text((420-375*(j == 1)+375*(j == 2)) * (1 - i) + (1 - 2 * i) * 190 +
-                                                 (1120-375*(j == 1)+375*(j == 2)) * i, 215*(j >= 1)+350,
-                                                 text=div.text[1:-1].replace(" ", "\n"), font=["Ubuntu", 20],
+                                                 (1120-375*(j == 1)+375*(j == 2)) * i, 215*(j >= 1)+350, font=["Ubuntu", 20],
                                                  fill="white", justify="center", tag="TeamName" + str(2*j+i))
                     i += 1
 
@@ -274,8 +286,7 @@ class MatchWindow(Toplevel):
                     pil_image = PIL.Image.open(requests.get(full_url, stream=True).raw)
                     self.displayed_teamlogos.append(PIL.ImageTk.PhotoImage(pil_image))
                     self.MatchCanvas.create_image((420-375*(j == 1)+375*(j == 2)) * (1 - i) + (1 - 2 * i) * 70 +
-                                                  (1120-375*(j == 1)+375*(j == 2)) * i, 215*(j >= 1)+350,
-                                                  image=self.displayed_teamlogos[2*j+i], tag="Teamlogo" + str(2*j+i))
+                                                  (1120-375*(j == 1)+375*(j == 2)) * i, 215*(j >= 1)+350, tag="Teamlogo" + str(2*j+i))
                     i += 1
 
                 minute_text = soup.find(class_="status").text
@@ -301,8 +312,7 @@ class MatchWindow(Toplevel):
                 i = 0
                 for div in soup.find_all("div", class_="col-xs-4 text-center team"):
                     self.MatchCanvas.create_text((420-375*(j % 2 == 0)+375*(j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
-                                                 190 + (1120-375*(j % 2 == 0)+375*(j % 2 == 1)) * i, 215*(j >= 2)+350,
-                                                 text=div.text[1:-1].replace(" ", "\n"), font=["Ubuntu", 20],
+                                                 190 + (1120-375*(j % 2 == 0)+375*(j % 2 == 1)) * i, 215*(j >= 2)+350, font=["Ubuntu", 20],
                                                  fill="white", justify="center", tag="TeamName" + str(2*j+i))
                     i += 1
 
@@ -338,8 +348,7 @@ class MatchWindow(Toplevel):
                     pil_image = PIL.Image.open(requests.get(full_url, stream=True).raw)
                     self.displayed_teamlogos.append(PIL.ImageTk.PhotoImage(pil_image))
                     self.MatchCanvas.create_image((420-375*(j % 2 == 0)+375*(j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
-                                                  70 + (1120-375*(j % 2 == 0)+375*(j % 2 == 1)) * i, 215*(j >= 2)+350,
-                                                  image=self.displayed_teamlogos[2*j+i], tag="Teamlogo" + str(2*j+i))
+                                                  70 + (1120-375*(j % 2 == 0)+375*(j % 2 == 1)) * i, 215*(j >= 2)+350, tag="Teamlogo" + str(2*j+i))
                     i += 1
 
                 minute_text = soup.find(class_="status").text
@@ -361,9 +370,31 @@ class MatchWindow(Toplevel):
                                                  text=minute_text.strip(' '), font=["Ubuntu", 20],
                                                  justify="center", tag="timer" + str(j))
 
+        self.load_match_teams()
         self.after(10000, self.reload_match_score)
         self.after(60000, self.reload_match_commentaire)
         self.after(60000, self.reload_match_timer)
+
+    def load_match_teams(self):
+
+        for j in range(self.nb_matches):
+            if j >= len(self.match_urls):
+                return
+
+            match_page = requests.get(self.match_urls[j])
+            soup = bs4.BeautifulSoup(match_page.text, "html.parser")
+            i = 0
+            for div in soup.find_all("div", class_="col-xs-4 text-center team"):
+                self.MatchCanvas.itemconfigure("TeamName"+str(2*j+i), text=div.text[1:-1].replace(" ", "\n"))
+                i += 1
+
+            i = 0
+            for div in soup.find_all("div", class_="col-xs-4 text-center"):
+                full_url = "https://www.matchendirect.fr" + div.find("img")["src"].replace("/96/", "/128/")
+                pil_image = PIL.Image.open(requests.get(full_url, stream=True).raw)
+                self.displayed_teamlogos.append(PIL.ImageTk.PhotoImage(pil_image))
+                self.MatchCanvas.itemconfigure("Teamlogo" + str(2*j+i), image=self.displayed_teamlogos[2*j+i])
+                i += 1
 
     def reload_match_score(self):
         for j in range(self.nb_matches):
@@ -390,7 +421,7 @@ class MatchWindow(Toplevel):
                 self.MatchCanvas.itemconfigure("bg" + str(j), fill="#E5E4E1")
                 self.MatchCanvas.itemconfigure("commentaire" + str(j), text=a + " : " + b)
         print("Commentaires mis à jour")
-        self.after(58000, self.reload_match_commentaire)
+        self.after(60000, self.reload_match_commentaire)
 
     def reload_match_timer(self):
         for j in range(self.nb_matches):
@@ -411,7 +442,7 @@ class MatchWindow(Toplevel):
                                                5*(self.nb_matches <= 2) + 10*(self.nb_matches == 1)])
 
         print("Timer mis à jour")
-        self.after(58000, self.reload_match_timer)
+        self.after(60000, self.reload_match_timer)
 
     def load_channel_stats(self, _video_link=""):
         channel_page = requests.get("https://www.youtube.com/channel/UCvahkUIQv3F1eYh7BV0CmbQ")
@@ -456,6 +487,23 @@ class MatchWindow(Toplevel):
         else:
             current = self.MatchCanvas.itemcget(tag, "font").split(" ")
             self.MatchCanvas.itemconfigure(tag, font=[current[0], int(current[1])+direction[0]])
+
+    def play_gif(self, i=1, wait=100):
+        self.MatchCanvas.itemconfigure("gif", image=self.gif[i])
+        i += 1
+        i %= 55
+        self.after(wait, self.play_gif, i, wait)
+
+    def playback(self):
+        mixer.init()
+        mixer.music.load("C:/Users/Julien/Music/Music/atmos.mp3")
+        mixer.music.play(10)
+
+    def destroy(self):
+        if mixer.get_init():
+            mixer.music.stop()
+            mixer.quit()
+        Toplevel.destroy(self)
 
 
 class SetupFrame(Frame):
@@ -588,3 +636,4 @@ class EditFrame(Frame):
                 Button(self.SubFrame, text="\U000025BC", fg='white',
                        command=partial(self.move, "TeamName" + str(2*i+j), (-1, -1)),
                        bg='#4E4E4E').grid(row=3*i+2, column=6*(j+2)+1, padx=10, pady=10)
+
