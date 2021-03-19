@@ -1,5 +1,6 @@
 from tkinter import *
 from tkinter import ttk
+from tkinter.filedialog import askopenfilename
 import PIL.ImageTk
 import PIL.Image
 import requests
@@ -28,9 +29,10 @@ class ManagerWindow(Tk):
 
     def launch_match(self, nb_matches, url_list):
 
-        self.MatchWindow = MatchWindow(master=self, nb_matches=nb_matches, url_list=url_list)
+        if not self.MatchWindow:
+            self.MatchWindow = MatchWindow(master=self, nb_matches=nb_matches, url_list=url_list)
 
-        self.StreamFrame.load_edit(nb_matches)
+            self.StreamFrame.load_edit(nb_matches)
 
     def move(self, tag, direction):
 
@@ -39,15 +41,22 @@ class ManagerWindow(Tk):
     def load_video(self, video_url):
         self.MatchWindow.load_video_stats(video_url)
 
+    def launch_playback(self, filename):
+        self.MatchWindow.playback(filename)
+
     def is_stream_on(self):
         return not(self.MatchWindow is None)
+
+    def erase(self):
+        self.MatchWindow= None
 
 
 class MatchWindow(Toplevel):
 
-    def __init__(self, master=None, nb_matches=1, url_list=None, video_url=None):
+    def __init__(self, master: ManagerWindow, nb_matches=1, url_list=None, video_url=None):
 
         Toplevel.__init__(self, master)
+        self.master = master
         self.title("Match Stream")
         self.match_urls = url_list
         self.nb_matches = nb_matches
@@ -63,7 +72,6 @@ class MatchWindow(Toplevel):
         self.displayed_icons = []
         self.displayed_teamlogos = []
 
-        self.after(10000, self.playback)
         self.load_bases()
         self.load_channel_stats()
         self.load_match_stats()
@@ -141,239 +149,119 @@ class MatchWindow(Toplevel):
         font_sizes = ((30, 40, 12, (12, 35)), (22, 40, 10, (10, 25)), (20, 35, 8, (7, 20)), (20, 35, 8, (7, 20)))
 
         for j in range(self.nb_matches):
-            match_page = requests.get(self.match_urls[j])
-            soup = bs4.BeautifulSoup(match_page.text, "html.parser")
 
             if self.nb_matches == 1:
-                i = 0
-                for div in soup.find_all("div", class_="col-xs-4 text-center team"):
+                for i in range(2):
                     self.MatchCanvas.create_text(195*(1-i) + (1-2*i)*300 + 1347*i, 500, font=["Ubuntu", 30],
                                                  fill="white", justify="center", tag="TeamName"+str(i))
-                    i += 1
 
-                i = 0
-                for score in soup.find_all(class_="score"):
-                    self.MatchCanvas.create_text(195 * (1 - i) + (1 - 2 * i) * 493 + 1347 * i, 535,
-                                                 text=score.text, font=["Ubuntu", 40],
+                for i in range(2):
+                    self.MatchCanvas.create_text(195 * (1 - i) + (1 - 2 * i) * 493 + 1347 * i, 535, font=["Ubuntu", 40],
                                                  fill="white", justify="center", tag="score"+str(i))
-                    i += 1
 
-                a = soup.find(class_="bg-primary")
                 self.MatchCanvas.create_rectangle(221, 640, 1321, 700, tag="bg" + str(j), width=0)
-                self.MatchCanvas.create_text(771, 670, text="", font=["Arial", 12],
+                self.MatchCanvas.create_text(771, 670, font=["Arial", 12],
                                              fill="black", tag="commentaire" + str(j), width=1100)
-                if a is not None:
-                    if not a.text:
-                        a = "0'"
-                    else:
-                        a = a.text + "'"
-                    b = soup.find(id="commentaire").find_all("td")[2].text
-                    self.MatchCanvas.itemconfigure("bg"+str(j), fill="#E5E4E1")
-                    self.MatchCanvas.itemconfigure("commentaire"+str(j), text=a + " : " + b)
 
-                i = 0
-                for div in soup.find_all("div", class_="col-xs-4 text-center"):
-                    full_url = "https://www.matchendirect.fr" + div.find("img")["src"].replace("/96/", "/128/")
-                    pil_image = PIL.Image.open(requests.get(full_url, stream=True).raw)
-                    self.displayed_teamlogos.append(PIL.ImageTk.PhotoImage(pil_image))
+                for i in range(2):
                     self.MatchCanvas.create_image(195 * (1 - i) + (1 - 2 * i) * 100 + 1347 * i, 500, tag="Teamlogo" +
                                                                                                          str(2*j+i))
-                    i += 1
 
-                minute_text = soup.find(class_="status").text
-
-                if minute_text.split(" ")[0] == "Coup":
-                    self.MatchCanvas.create_text(771, 448, text="Coup\nd'envoi",
-                                                 font=["Ubuntu", 12], justify="center", tag="timer" + str(j))
-                elif minute_text == " Mi-temps":
-                    self.MatchCanvas.create_text(771, 448, text=minute_text.strip(" ").replace("-", "-\n"),
-                                                 font=["Ubuntu", 12], justify="center", tag="timer"+str(j))
-                elif minute_text == "Match terminé":
-                    self.MatchCanvas.create_text(771, 448, text=minute_text.replace(" ", "\n"), font=["Ubuntu", 12],
-                                                 justify="center", tag="timer" + str(j))
-                else:
-                    self.MatchCanvas.create_text(771, 448, text=minute_text.strip(' '), font=["Ubuntu", 35],
-                                                 justify="center", tag="timer" + str(j))
+                self.MatchCanvas.create_text(771, 448, justify="center", tag="timer" + str(j))
 
             elif self.nb_matches == 2:
-                i = 0
-                for div in soup.find_all("div", class_="col-xs-4 text-center team"):
-                    self.MatchCanvas.create_text(333 * (1 - i) + (1 - 2 * i) * 220 + 1217 * i, 270*j+350, font=["Ubuntu", 22],
+                for i in range(2):
+                    self.MatchCanvas.create_text(333 * (1 - i) + (1 - 2 * i) * 220 + 1217 * i, 270*j+350,
+                                                 font=["Ubuntu", 22],
                                                  fill="white", justify="center", tag="TeamName" + str(2*j+i))
-                    i += 1
 
-                i = 0
-                for score in soup.find_all(class_="score"):
+                for i in range(2):
                     self.MatchCanvas.create_text(325 * (1 - i) + (1 - 2 * i) * 383 + 1217 * i, 270*j+380,
-                                                 text=score.text, font=["Ubuntu", 40],
+                                                 font=["Ubuntu", 40],
                                                  fill="white", justify="center", tag="score" + str(2*j+i))
-                    i += 1
 
-                a = soup.find(class_="bg-primary")
-                self.MatchCanvas.create_rectangle(360, 457 + 270 * j, 1180, 518 + 270 * j, width=0)
-                self.MatchCanvas.create_text(771, 490 + 270 * j,
+                self.MatchCanvas.create_rectangle(360, 450 + 270 * j, 1180, 511 + 270 * j, width=0, tag="bg"+str(j))
+                self.MatchCanvas.create_text(771, 483 + 270 * j,
                                              text="", font=["Arial", 10],
                                              fill="black", tag="commentaire" + str(j), width=800)
-                if a is not None:
-                    if not a.text:
-                        a = "0'"
-                    else:
-                        a = a.text + "'"
-                    b = soup.find(id="commentaire").find_all("td")[2].text
-                    self.MatchCanvas.itemconfigure("bg" + str(j), fill="#E5E4E1")
-                    self.MatchCanvas.itemconfigure("commentaire" + str(j), text=a + " : " + b)
 
-                i = 0
-                for div in soup.find_all("div", class_="col-xs-4 text-center"):
-                    full_url = "https://www.matchendirect.fr" + div.find("img")["src"].replace("/96/", "/128/")
-                    pil_image = PIL.Image.open(requests.get(full_url, stream=True).raw)
-                    self.displayed_teamlogos.append(PIL.ImageTk.PhotoImage(pil_image))
+                for i in range(2):
                     self.MatchCanvas.create_image(333 * (1 - i) + (1 - 2 * i) * 80 + 1207 * i, 270*j+350,
                                                   tag="Teamlogo" + str(2*j+i))
-                    i += 1
 
-                minute_text = soup.find(class_="status").text
-
-                if minute_text.split(" ")[1] == "Coup":
-                    self.MatchCanvas.create_text(771, 307 + 270 * j, text="Coup \n d'envoi",
-                                                 font=["Ubuntu", 10], justify="center", tag="timer" + str(j))
-                elif minute_text == " Mi-temps":
-                    self.MatchCanvas.create_text(771, 307 + 270 * j, text=minute_text.strip(" ").replace("-", "-\n"),
-                                                 font=["Ubuntu", 10], justify="center", tag="timer" + str(j))
-                elif minute_text == "Match terminé":
-                    self.MatchCanvas.create_text(771, 307 + 270 * j, text=minute_text.replace(" ", "\n"),
-                                                 font=["Ubuntu", 10], justify="center", tag="timer" + str(j))
-                else:
-                    self.MatchCanvas.create_text(771, 307 + 270 * j, text=minute_text.strip(' '), font=["Ubuntu", 25],
-                                                 justify="center", tag="timer" + str(j))
+                self.MatchCanvas.create_text(771, 307 + 270 * j, justify="center", tag="timer" + str(j))
 
             elif self.nb_matches == 3:
-                i = 0
-                for div in soup.find_all("div", class_="col-xs-4 text-center team"):
+                for i in range(2):
                     self.MatchCanvas.create_text((420-375*(j == 1)+375*(j == 2)) * (1 - i) + (1 - 2 * i) * 190 +
-                                                 (1120-375*(j == 1)+375*(j == 2)) * i, 215*(j >= 1)+350, font=["Ubuntu", 20],
+                                                 (1120-375*(j == 1)+375*(j == 2)) * i, 215*(j >= 1)+350,
+                                                 font=["Ubuntu", 20],
                                                  fill="white", justify="center", tag="TeamName" + str(2*j+i))
-                    i += 1
 
-                i = 0
-                for score in soup.find_all(class_="score"):
+                for i in range(2):
                     self.MatchCanvas.create_text((420-375*(j == 1)+375*(j == 2)) * (1 - i) + (1 - 2 * i) * 300 +
                                                  (1122-375*(j == 1)+375*(j == 2)) * i, 215*(j >= 1)+372,
-                                                 text=score.text, font=["Ubuntu", 35],
+                                                 font=["Ubuntu", 35],
                                                  fill="white", justify="center", tag="score" + str(2*j+i))
-                    i += 1
 
-                a = soup.find(class_="bg-primary")
-                self.MatchCanvas.create_rectangle(50 + 375 * (j == 0) + 750 * (j == 2), 435 + 215 * (j >= 1),
-                                                  740 + 375 * (j == 0) + 750 * (j == 2), 482 + 215 * (j >= 1),
-                                                  width=0)
-                self.MatchCanvas.create_text((575 - 375 * (j == 1) + 375 * (j == 2)) * (1 - i) + (1 - 2 * i) * 300 +
-                                             (1122 - 375 * (j == 1) + 375 * (j == 2)) * i, 215 * (j >= 1) + 458,
+                self.MatchCanvas.create_rectangle(50 + 375 * (j == 0) + 750 * (j == 2), 432 + 215 * (j >= 1),
+                                                  740 + 375 * (j == 0) + 750 * (j == 2), 479 + 215 * (j >= 1),
+                                                  width=0, tag="bg"+str(j))
+
+                self.MatchCanvas.create_text((770 - 375 * (j == 1) + 375 * (j == 2)), 215 * (j >= 1) + 455,
                                              text="", font=["Arial", 8],
                                              fill="black", tag="commentaire" + str(j), width=680)
-                if a is not None:
-                    if not a.text:
-                        a = "0'"
-                    else:
-                        a = a.text + "'"
-                    b = soup.find(id="commentaire").find_all("td")[2].text
-                    self.MatchCanvas.itemconfigure("bg"+str(j), fill="#E5E4E1")
-                    self.MatchCanvas.itemconfigure("commentaire"+str(j), text=a + " : " + b)
 
-                i = 0
-                for div in soup.find_all("div", class_="col-xs-4 text-center"):
-                    full_url = "https://www.matchendirect.fr" + div.find("img")["src"].replace("/96/", "/128/")
-                    pil_image = PIL.Image.open(requests.get(full_url, stream=True).raw)
-                    self.displayed_teamlogos.append(PIL.ImageTk.PhotoImage(pil_image))
+                for i in range(2):
                     self.MatchCanvas.create_image((420-375*(j == 1)+375*(j == 2)) * (1 - i) + (1 - 2 * i) * 70 +
-                                                  (1120-375*(j == 1)+375*(j == 2)) * i, 215*(j >= 1)+350, tag="Teamlogo" + str(2*j+i))
-                    i += 1
+                                                  (1120-375*(j == 1)+375*(j == 2)) * i, 215*(j >= 1)+350,
+                                                  tag="Teamlogo" + str(2*j+i))
 
-                minute_text = soup.find(class_="status").text
-
-                if minute_text.split(" ")[0] == "Coup":
-                    self.MatchCanvas.create_text(771 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
-                                                 text="Coup\nd'envoi",
-                                                 font=["Ubuntu", 7], justify="center", tag="timer" + str(j))
-                elif minute_text == " Mi-temps":
-                    self.MatchCanvas.create_text(771-375*(j == 1)+375*(j == 2), 313+215*(j >= 1),
-                                                 text=minute_text.strip(" ").replace("-", "-\n"),
-                                                 font=["Ubuntu", 7], justify="center", tag="timer" + str(j))
-                elif minute_text == "Match terminé":
-                    self.MatchCanvas.create_text(771 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
-                                                 text=minute_text.replace(" ", "\n"),
-                                                 font=["Ubuntu", 7], justify="center", tag="timer" + str(j))
-                else:
-                    self.MatchCanvas.create_text(771 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
-                                                 text=minute_text.strip(' '),
-                                                 font=["Ubuntu", 20], justify="center", tag="timer" + str(j))
+                self.MatchCanvas.create_text(771 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
+                                             justify="center", tag="timer" + str(j))
 
             elif self.nb_matches == 4:
-                i = 0
-                for div in soup.find_all("div", class_="col-xs-4 text-center team"):
+                for i in range(2):
                     self.MatchCanvas.create_text((420-375*(j % 2 == 0)+375*(j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
-                                                 190 + (1120-375*(j % 2 == 0)+375*(j % 2 == 1)) * i, 215*(j >= 2)+350, font=["Ubuntu", 20],
+                                                 190 + (1120-375*(j % 2 == 0)+375*(j % 2 == 1)) * i, 215*(j >= 2)+350,
+                                                 font=["Ubuntu", 20],
                                                  fill="white", justify="center", tag="TeamName" + str(2*j+i))
-                    i += 1
 
-                i = 0
-                for score in soup.find_all(class_="score"):
+                for i in range(2):
                     self.MatchCanvas.create_text((420-375*(j % 2 == 0)+375*(j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
                                                  300 + (1122-375*(j % 2 == 0)+375*(j % 2 == 1)) * i, 215*(j >= 2)+372,
-                                                 text=score.text, font=["Ubuntu", 35],
+                                                 font=["Ubuntu", 35],
                                                  fill="white", justify="center", tag="score" + str(2*j+i))
-                    i += 1
 
-                a = soup.find(class_="bg-primary")
-                self.MatchCanvas.create_rectangle(50 + 750 * (j % 2 == 1), 435 + 215 * (j >= 2),
-                                                  740 + 750 * (j % 2 == 1), 482 + 215 * (j >= 2),
-                                                  width=0)
-                self.MatchCanvas.create_text((575 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
-                                             300 + (1122 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i,
-                                             215 * (j >= 2) + 458,
+                self.MatchCanvas.create_rectangle(50 + 750 * (j % 2 == 1), 432 + 215 * (j >= 2),
+                                                  740 + 750 * (j % 2 == 1), 479 + 215 * (j >= 2),
+                                                  width=0, tag="bg"+str(j))
+
+                self.MatchCanvas.create_text((770 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)),
+                                             215 * (j >= 2) + 455,
                                              text="", font=["Arial", 8],
                                              fill="black", tag="commentaire" + str(j), width=680)
-                if a is not None:
-                    if not a.text:
-                        a = "0'"
-                    else:
-                        a = a.text + "'"
-                    b = soup.find(id="commentaire").find_all("td")[2].text
-                    self.MatchCanvas.itemconfigure("bg"+str(j), fill="#E5E4E1")
-                    self.MatchCanvas.itemconfigure("commentaire"+str(j), text=a + " : " + b)
 
-                i = 0
-                for div in soup.find_all("div", class_="col-xs-4 text-center"):
-                    full_url = "https://www.matchendirect.fr" + div.find("img")["src"].replace("/96/", "/128/")
-                    pil_image = PIL.Image.open(requests.get(full_url, stream=True).raw)
-                    self.displayed_teamlogos.append(PIL.ImageTk.PhotoImage(pil_image))
+                for i in range(2):
                     self.MatchCanvas.create_image((420-375*(j % 2 == 0)+375*(j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
-                                                  70 + (1120-375*(j % 2 == 0)+375*(j % 2 == 1)) * i, 215*(j >= 2)+350, tag="Teamlogo" + str(2*j+i))
-                    i += 1
+                                                  70 + (1120-375*(j % 2 == 0)+375*(j % 2 == 1)) * i, 215*(j >= 2)+350,
+                                                  tag="Teamlogo" + str(2*j+i))
 
-                minute_text = soup.find(class_="status").text
-
-                if minute_text.split(" ")[0] == "Coup":
-                    self.MatchCanvas.create_text(771 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
-                                                 text="Coup\nd'envoi", font=["Ubuntu", 7],
-                                                 justify="center", tag="timer" + str(j))
-                elif minute_text == " Mi-temps":
-                    self.MatchCanvas.create_text(771-375*(j % 2 == 0)+375*(j % 2 == 1), 313+215*(j >= 2),
-                                                 text=minute_text.strip(" ").replace("-", "-\n"), font=["Ubuntu", 7],
-                                                 justify="center", tag="timer" + str(j))
-                elif minute_text == "Match terminé":
-                    self.MatchCanvas.create_text(771 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
-                                                 text=minute_text.replace(" ", "\n"), font=["Ubuntu", 7],
-                                                 justify="center", tag="timer" + str(j))
-                else:
-                    self.MatchCanvas.create_text(771 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
-                                                 text=minute_text.strip(' '), font=["Ubuntu", 20],
-                                                 justify="center", tag="timer" + str(j))
+                self.MatchCanvas.create_text(771 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
+                                             justify="center", tag="timer" + str(j))
 
         self.load_match_teams()
-        self.after(10000, self.reload_match_score)
-        self.after(60000, self.reload_match_commentaire)
-        self.after(60000, self.reload_match_timer)
+        self.reload_match_score()
+        self.reload_match_commentaries()
+        self.reload_match_timer()
+
+    def change_matches(self, new_urls):
+
+        self.match_urls = new_urls
+        self.load_match_teams()
+        self.reload_match_score()
+        self.reload_match_commentaries()
+        self.reload_match_timer()
 
     def load_match_teams(self):
 
@@ -407,7 +295,7 @@ class MatchWindow(Toplevel):
         print("Scores mis à jour")
         self.after(10000, self.reload_match_score)
 
-    def reload_match_commentaire(self):
+    def reload_match_commentaries(self):
         for j in range(self.nb_matches):
             match_page = requests.get(self.match_urls[j])
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
@@ -421,7 +309,7 @@ class MatchWindow(Toplevel):
                 self.MatchCanvas.itemconfigure("bg" + str(j), fill="#E5E4E1")
                 self.MatchCanvas.itemconfigure("commentaire" + str(j), text=a + " : " + b)
         print("Commentaires mis à jour")
-        self.after(60000, self.reload_match_commentaire)
+        self.after(60000, self.reload_match_commentaries)
 
     def reload_match_timer(self):
         for j in range(self.nb_matches):
@@ -494,15 +382,16 @@ class MatchWindow(Toplevel):
         i %= 55
         self.after(wait, self.play_gif, i, wait)
 
-    def playback(self):
+    def playback(self, filename):
         mixer.init()
-        mixer.music.load("C:/Users/Julien/Music/Music/atmos.mp3")
+        mixer.music.load(filename)
         mixer.music.play(10)
 
     def destroy(self):
         if mixer.get_init():
             mixer.music.stop()
             mixer.quit()
+        self.master.erase()
         Toplevel.destroy(self)
 
 
@@ -510,6 +399,7 @@ class SetupFrame(Frame):
 
     def __init__(self, master: ManagerWindow, **kwargs):
         Frame.__init__(self, master, kwargs)
+        self.master = master
         self.old_number = 0
         self.url_entries = []
 
@@ -551,20 +441,24 @@ class SetupFrame(Frame):
 
 class EditFrame(Frame):
 
-    def __init__(self, master, **kwargs):
+    def __init__(self, master: ManagerWindow, **kwargs):
         Frame.__init__(self, master, kwargs)
         self.nb_matches = 0
+        self.master=master
 
         self.VideoEntry = Entry(self, width=70, bg='#6b6b6b', fg='white')
         self.VideoButton = Button(self, text="Charger", command=self.load_video, width=10, bg='#4E4E4E',
                                   fg='white')
+
+        self.MusicButton = Button(self, text="Choix Musique", command=self.select_playback, bg='#4E4E4E', fg='white')
 
         self.SubFrame = Frame(self, bg='#4E4E4E')
 
         Label(self, text="Url du stream: ", width=20, bg='#4E4E4E', fg='white').grid(row=0, column=0)
         self.VideoEntry.grid(row=0, column=1, padx=10, pady=10)
         self.VideoButton.grid(row=0, column=2, padx=10, pady=10)
-        self.SubFrame.grid(row=1, column=0, columnspan=3)
+        self.MusicButton.grid(row=1, column=0, padx=10, pady=10)
+        self.SubFrame.grid(row=2, column=0, columnspan=3)
 
     def load_video(self):
 
@@ -575,6 +469,12 @@ class EditFrame(Frame):
     def move(self, tag, direction):
 
         self.master.move(tag, direction)
+
+    def select_playback(self):
+        if self.master.is_stream_on():
+            filename = askopenfilename(default="./ressources/")
+            if filename:
+                self.master.launch_playback(filename)
 
     def load_edit(self, val):
         self.nb_matches = val
@@ -636,4 +536,3 @@ class EditFrame(Frame):
                 Button(self.SubFrame, text="\U000025BC", fg='white',
                        command=partial(self.move, "TeamName" + str(2*i+j), (-1, -1)),
                        bg='#4E4E4E').grid(row=3*i+2, column=6*(j+2)+1, padx=10, pady=10)
-
