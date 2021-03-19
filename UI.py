@@ -149,7 +149,10 @@ class MatchWindow(Toplevel):
                 self.MatchCanvas.create_text(771, 670, text="", font=["Arial", 12],
                                              fill="black", tag="commentaire" + str(j), width=1100)
                 if a is not None:
-                    a = a.text
+                    if not a.text:
+                        a = "0'"
+                    else:
+                        a = a.text + "'"
                     b = soup.find(id="commentaire").find_all("td")[2].text
                     self.MatchCanvas.itemconfigure("bg"+str(j), fill="#E5E4E1")
                     self.MatchCanvas.itemconfigure("commentaire"+str(j), text=a + " : " + b)
@@ -199,7 +202,10 @@ class MatchWindow(Toplevel):
                                              text="", font=["Arial", 10],
                                              fill="black", tag="commentaire" + str(j), width=800)
                 if a is not None:
-                    a = a.text
+                    if not a.text:
+                        a = "0'"
+                    else:
+                        a = a.text + "'"
                     b = soup.find(id="commentaire").find_all("td")[2].text
                     self.MatchCanvas.itemconfigure("bg" + str(j), fill="#E5E4E1")
                     self.MatchCanvas.itemconfigure("commentaire" + str(j), text=a + " : " + b)
@@ -254,7 +260,10 @@ class MatchWindow(Toplevel):
                                              text="", font=["Arial", 8],
                                              fill="black", tag="commentaire" + str(j), width=680)
                 if a is not None:
-                    a = a.text
+                    if not a.text:
+                        a = "0'"
+                    else:
+                        a = a.text + "'"
                     b = soup.find(id="commentaire").find_all("td")[2].text
                     self.MatchCanvas.itemconfigure("bg"+str(j), fill="#E5E4E1")
                     self.MatchCanvas.itemconfigure("commentaire"+str(j), text=a + " : " + b)
@@ -315,7 +324,10 @@ class MatchWindow(Toplevel):
                                              text="", font=["Arial", 8],
                                              fill="black", tag="commentaire" + str(j), width=680)
                 if a is not None:
-                    a = a.text
+                    if not a.text:
+                        a = "0'"
+                    else:
+                        a = a.text + "'"
                     b = soup.find(id="commentaire").find_all("td")[2].text
                     self.MatchCanvas.itemconfigure("bg"+str(j), fill="#E5E4E1")
                     self.MatchCanvas.itemconfigure("commentaire"+str(j), text=a + " : " + b)
@@ -370,7 +382,10 @@ class MatchWindow(Toplevel):
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
             a = soup.find(class_="bg-primary")
             if a is not None:
-                a = a.text
+                if not a.text:
+                    a = "0'"
+                else:
+                    a = a.text + "'"
                 b = soup.find(id="commentaire").find_all("td")[2].text
                 self.MatchCanvas.itemconfigure("bg" + str(j), fill="#E5E4E1")
                 self.MatchCanvas.itemconfigure("commentaire" + str(j), text=a + " : " + b)
