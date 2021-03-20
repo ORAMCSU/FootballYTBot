@@ -34,6 +34,10 @@ class ManagerWindow(Tk):
 
             self.StreamFrame.load_edit(nb_matches)
 
+        else:
+            self.MatchWindow.change_match_number(nb_matches, url_list)
+            self.StreamFrame.load_edit(nb_matches)
+
     def move(self, tag, direction):
 
         self.MatchWindow.move(tag, direction)
@@ -48,7 +52,7 @@ class ManagerWindow(Tk):
         return not(self.MatchWindow is None)
 
     def erase(self):
-        self.MatchWindow= None
+        self.MatchWindow = None
 
 
 class MatchWindow(Toplevel):
@@ -61,6 +65,7 @@ class MatchWindow(Toplevel):
         self.match_urls = url_list
         self.nb_matches = nb_matches
         self.gif = []
+        self.afters = {"scores": None, "timer": None, "commentaries": None, "gif": None}
 
         self.video_url = video_url
         self.MatchCanvas = Canvas(self, width=1536, height=864)
@@ -94,31 +99,8 @@ class MatchWindow(Toplevel):
         self.MatchCanvas.create_image(70, 70, image=self.displayed_logo, tag="Logo")
 
         pil_image2.close()
-        pil_image = PIL.Image.open("ressources/images/affiche_vierge.png")
 
-        if self.nb_matches == 1:
-            pil_image2 = pil_image.resize((1150, 234))
-        elif self.nb_matches == 2:
-            pil_image2 = pil_image.resize((875, 195))
-        elif self.nb_matches == 3 or self.nb_matches == 4:
-            pil_image2 = pil_image.resize((700, 156))
-        pil_image.close()
-        if pil_image2:
-            self.displayed_black = PIL.ImageTk.PhotoImage(pil_image2)
-
-        for i in range(self.nb_matches):
-            if self.nb_matches == 1:
-                self.MatchCanvas.create_image(770, 500, image=self.displayed_black, tag="Black"+str(i))
-
-            elif self.nb_matches == 2:
-                self.MatchCanvas.create_image(770, 270*i+350, image=self.displayed_black, tag="Black" + str(i))
-
-            elif self.nb_matches == 3:
-                self.MatchCanvas.create_image(770-375*(i == 1)+375*(i == 2), 215*(i > 0)+350,
-                                              image=self.displayed_black, tag="Black" + str(i))
-            elif self.nb_matches == 4:
-                self.MatchCanvas.create_image(770-375*(i % 2 == 1)+375*(i % 2 == 0), 215*(i > 1)+350,
-                                              image=self.displayed_black, tag="Black" + str(i))
+        self.load_black()
 
         iconlist = ["ressources/images/youtube.png", "ressources/images/views.png", "ressources/images/likes.png"]
         for i in range(3):
@@ -133,6 +115,34 @@ class MatchWindow(Toplevel):
 
         pil_image2.close()
 
+    def load_black(self):
+
+        pil_image = PIL.Image.open("ressources/images/affiche_vierge.png")
+
+        if self.nb_matches == 1:
+            pil_image2 = pil_image.resize((1150, 234))
+        elif self.nb_matches == 2:
+            pil_image2 = pil_image.resize((875, 195))
+        else:  # self.nb_matches == 3 or self.nb_matches == 4:
+            pil_image2 = pil_image.resize((700, 156))
+        pil_image.close()
+        if pil_image2:
+            self.displayed_black = PIL.ImageTk.PhotoImage(pil_image2)
+
+        for i in range(self.nb_matches):
+            if self.nb_matches == 1:
+                self.MatchCanvas.create_image(770, 500, image=self.displayed_black, tag="Black" + str(i))
+
+            elif self.nb_matches == 2:
+                self.MatchCanvas.create_image(770, 270 * i + 350, image=self.displayed_black, tag="Black" + str(i))
+
+            elif self.nb_matches == 3:
+                self.MatchCanvas.create_image(770 - 375 * (i == 1) + 375 * (i == 2), 215 * (i > 0) + 350,
+                                              image=self.displayed_black, tag="Black" + str(i))
+            elif self.nb_matches == 4:
+                self.MatchCanvas.create_image(770 - 375 * (i % 2 == 1) + 375 * (i % 2 == 0), 215 * (i > 1) + 350,
+                                              image=self.displayed_black, tag="Black" + str(i))
+
     def load_gif(self):
 
         gifimg = PIL.Image.open("./ressources/images/gif-eye.gif")
@@ -141,8 +151,10 @@ class MatchWindow(Toplevel):
             gifimg.seek(i)
             self.gif.append(PIL.ImageTk.PhotoImage(gifimg.copy().resize((30, 30))))
 
+        gifimg.close()
+
         self.MatchCanvas.create_image(770, 430, image=self.gif[0], tag="gif")
-        self.after(100, self.play_gif, 1, 2000 // 55)
+        self.afters["gif"] = self.after(100, self.play_gif, 1, 2000 // 55)
 
     def load_match_stats(self):
 
@@ -263,7 +275,34 @@ class MatchWindow(Toplevel):
         self.reload_match_commentaries()
         self.reload_match_timer()
 
+    def change_match_number(self, new_number, new_urls):
+
+        if new_number != self.nb_matches:
+            for after_id in self.afters:
+                self.after_cancel(after_id)
+            for j in range(self.nb_matches):
+                self.MatchCanvas.delete("bg" + str(j))
+                self.MatchCanvas.delete("commentaire" + str(j))
+                self.MatchCanvas.delete("timer" + str(j))
+                self.MatchCanvas.delete("Black" + str(j))
+                for i in range(2):
+                    self.MatchCanvas.delete("Teamlogo"+str(2*j+i))
+                    self.MatchCanvas.delete("TeamName"+str(2*j+i))
+                    self.MatchCanvas.delete("score"+str(2*j+i))
+
+            self.nb_matches = new_number
+            self.match_urls = new_urls
+            self.load_black()
+            self.load_match_stats()
+
+        elif self.match_urls != new_urls:
+            for after_id in self.afters:
+                self.after_cancel(after_id)
+            self.change_matches(new_urls)
+
     def load_match_teams(self):
+
+        self.displayed_teamlogos = []
 
         for j in range(self.nb_matches):
             if j >= len(self.match_urls):
@@ -293,7 +332,7 @@ class MatchWindow(Toplevel):
                 self.MatchCanvas.itemconfigure("score"+str(2*j+i), text=score.text)
                 i += 1
         print("Scores mis à jour")
-        self.after(10000, self.reload_match_score)
+        self.afters["scores"] = self.after(10000, self.reload_match_score)
 
     def reload_match_commentaries(self):
         for j in range(self.nb_matches):
@@ -309,7 +348,7 @@ class MatchWindow(Toplevel):
                 self.MatchCanvas.itemconfigure("bg" + str(j), fill="#E5E4E1")
                 self.MatchCanvas.itemconfigure("commentaire" + str(j), text=a + " : " + b)
         print("Commentaires mis à jour")
-        self.after(60000, self.reload_match_commentaries)
+        self.afters["commentaries"] = self.after(60000, self.reload_match_commentaries)
 
     def reload_match_timer(self):
         for j in range(self.nb_matches):
@@ -330,7 +369,7 @@ class MatchWindow(Toplevel):
                                                5*(self.nb_matches <= 2) + 10*(self.nb_matches == 1)])
 
         print("Timer mis à jour")
-        self.after(60000, self.reload_match_timer)
+        self.afters["timer"] = self.after(60000, self.reload_match_timer)
 
     def load_channel_stats(self, _video_link=""):
         channel_page = requests.get("https://www.youtube.com/channel/UCvahkUIQv3F1eYh7BV0CmbQ")
@@ -355,7 +394,7 @@ class MatchWindow(Toplevel):
     def reload_video_stats(self, video_link="", iteration=0):
         video = new(video_link)
         self.MatchCanvas.itemconfigure("Views", text=str(video.viewcount))
-        self.MatchCanvas.itemconfigure("Likes", text=str(video.likes))
+        self.MatchCanvas.itemconfigure("Likes", text=str(video.likes+1))
 
         if iteration == 6:
             channel_page = requests.get("https://www.youtube.com/channel/UCvahkUIQv3F1eYh7BV0CmbQ")
@@ -380,7 +419,7 @@ class MatchWindow(Toplevel):
         self.MatchCanvas.itemconfigure("gif", image=self.gif[i])
         i += 1
         i %= 55
-        self.after(wait, self.play_gif, i, wait)
+        self.afters["gif"] = self.after(wait, self.play_gif, i, wait)
 
     def playback(self, filename):
         mixer.init()
@@ -435,8 +474,9 @@ class SetupFrame(Frame):
 
     def launch_match(self, _event=None):
 
-        self.master.launch_match(nb_matches=int(self.NumberRoll.get()), url_list=[i.get() for
-                                 i in self.url_entries])
+        if self.old_number:
+            self.master.launch_match(nb_matches=self.old_number, url_list=[i.get() for
+                                     i in self.url_entries])
 
 
 class EditFrame(Frame):
@@ -444,13 +484,15 @@ class EditFrame(Frame):
     def __init__(self, master: ManagerWindow, **kwargs):
         Frame.__init__(self, master, kwargs)
         self.nb_matches = 0
-        self.master=master
+        self.master = master
+        self.musicfile = ""
 
         self.VideoEntry = Entry(self, width=70, bg='#6b6b6b', fg='white')
         self.VideoButton = Button(self, text="Charger", command=self.load_video, width=10, bg='#4E4E4E',
                                   fg='white')
 
         self.MusicButton = Button(self, text="Choix Musique", command=self.select_playback, bg='#4E4E4E', fg='white')
+        self.MusicPlay = Button(self, text="Jouer Musique", command=self.launch_playback, bg='#4E4E4E', fg='white')
 
         self.SubFrame = Frame(self, bg='#4E4E4E')
 
@@ -458,6 +500,7 @@ class EditFrame(Frame):
         self.VideoEntry.grid(row=0, column=1, padx=10, pady=10)
         self.VideoButton.grid(row=0, column=2, padx=10, pady=10)
         self.MusicButton.grid(row=1, column=0, padx=10, pady=10)
+        self.MusicPlay.grid(row=1, column=1, padx=10, pady=10)
         self.SubFrame.grid(row=2, column=0, columnspan=3)
 
     def load_video(self):
@@ -471,10 +514,15 @@ class EditFrame(Frame):
         self.master.move(tag, direction)
 
     def select_playback(self):
+        self.musicfile = askopenfilename(initialdir="./ressources/", filetypes=[("Tout audio", (".mp3", ".ogg",
+                                                                                                ".wav")),
+                                                                                ("Fichier compressé", ".mp3"),
+                                                                                ('Audio non compressé', ".wav")])
+
+    def launch_playback(self):
         if self.master.is_stream_on():
-            filename = askopenfilename(default="./ressources/")
-            if filename:
-                self.master.launch_playback(filename)
+            if self.musicfile:
+                self.master.launch_playback(self.musicfile)
 
     def load_edit(self, val):
         self.nb_matches = val
