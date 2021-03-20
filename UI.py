@@ -9,6 +9,7 @@ import json
 from functools import partial
 from pygame import mixer
 from pafy import new
+from time import localtime
 
 
 class ManagerWindow(Tk):
@@ -25,7 +26,8 @@ class ManagerWindow(Tk):
         self.MainFrame.grid(row=0, column=0)
         self.StreamFrame.grid(row=1, column=0)
 
-        self.csv_cursor = 0
+        self.csv_links = []
+        self.current_csv = 0
         self.csv_after = None
 
         self.MatchWindow = None
@@ -58,24 +60,100 @@ class ManagerWindow(Tk):
         self.MatchWindow = None
 
     def load_from_csv(self):
-
-        url_list = []
+        self.csv_links = []
         with open("./ressources/schedule.csv", "r", encoding="utf8") as file:
-            i = 0
-            while i < 4:
-                try:
-                    url = file.readline().strip("\n").split(",")[0].strip("\ufeff")
-                    print(url)
-                    url_list.append(url)
-                    i += 1
-                except EOFError:
-                    break
-            self.csv_cursor += i
+            url = file.readline().strip("\n").split(",")[0].strip("\ufeff")
+            while url:
+                self.csv_links.append([url, 0])
+                url = file.readline().strip("\n").split(",")[0].strip("\ufeff")
+
+        self.timer()
+        self.clean_list()
+        self.csv_match()
+
+    def csv_match(self):
+        print(self.csv_links)
+        i = 0
+        url_list = []
+        while i < 4 and i < len(self.csv_links) and self.csv_links[i][1] == -1:
+            url_list.append(self.csv_links[i][0])
+            i += 1
+
+        self.current_csv = i
 
         self.launch_match(i, url_list)
+        self.waiter()
 
     def waiter(self):
-        pass
+
+        now = localtime()
+        now = now.tm_min + now.tm_hour * 60
+        print(now)
+        if self.current_csv < len(self.csv_links) and self.current_csv < 4:
+            if self.csv_links[self.current_csv][1]-now-5 < 0:
+                self.rotate_matches()
+            else:
+                self.after((self.csv_links[self.current_csv][1]-now-5)*60000, self.rotate_matches)
+        else:
+            self.after(300000, self.free_matches)
+
+    def rotate_matches(self):
+
+        self.csv_links[self.current_csv][1] = -1
+        self.check_finished()
+        self.csv_links.sort(key=lambda i: i[1])
+        self.clean_list()
+        print(self.current_csv)
+        self.csv_match()
+
+    def free_matches(self):
+        old_list = self.csv_links.copy()
+        self.check_finished()
+        self.csv_links.sort(key=lambda i: i[1])
+        self.clean_list()
+        if self.csv_links != old_list:
+            self.csv_match()
+        else:
+            self.after(300000, self.free_matches)
+
+    def check_finished(self):
+
+        for i in range(self.current_csv):
+            link = self.csv_links[i]
+            match_page = requests.get(link[0])
+            soup = bs4.BeautifulSoup(match_page.text, "html.parser")
+            minute_text = soup.find(class_="status").text
+            if minute_text == "Match terminé":
+                link[1] = -2
+
+    def timer(self):
+
+        now = localtime()
+        now = now.tm_min + now.tm_hour * 60
+
+        for link in self.csv_links:
+            match_page = requests.get(link[0])
+            soup = bs4.BeautifulSoup(match_page.text, "html.parser")
+            minute_text = soup.find(class_="status").text
+            if minute_text.split(" ")[0] == "Coup":
+                cast_time = minute_text.split(" ")[-1]
+                cast_time = int(cast_time.split("h")[0])*60+int(cast_time.split("h")[1])
+                if cast_time < now:
+                    cast_time += 1440
+                link[1] = cast_time
+            elif minute_text == " Mi-temps":
+                link[1] = -1  # match ongoing
+            elif minute_text == "Match terminé":
+                link[1] = -2
+            else:
+                link[1] = -1  # match ongoing
+
+        self.csv_links.sort(key=lambda i: i[1])
+
+    def clean_list(self):
+
+        while self.csv_links[0][1] == -2:
+            self.csv_links.pop(0)
 
 
 class MatchWindow(Toplevel):
@@ -89,6 +167,7 @@ class MatchWindow(Toplevel):
         self.nb_matches = nb_matches
         self.gif = []
         self.afters = {"scores": None, "timer": None, "commentaries": None, "gif": None}
+        self.after_blocked = {"scores": False, "timer": False, "commentaries": False, "gif": False}
 
         self.video_url = video_url
         self.MatchCanvas = Canvas(self, width=1536, height=864)
@@ -167,7 +246,7 @@ class MatchWindow(Toplevel):
                                               image=self.displayed_black, tag="Black" + str(i))
 
     def load_gif(self):
-
+        self.after_blocked["gif"] = True
         gifimg = PIL.Image.open("./ressources/images/gif-eye.gif")
 
         for i in range(55):
@@ -178,6 +257,7 @@ class MatchWindow(Toplevel):
 
         self.MatchCanvas.create_image(770, 430, image=self.gif[0], tag="gif")
         self.afters["gif"] = self.after(100, self.play_gif, 1, 2000 // 55)
+        self.after_blocked["gif"] = False
 
     def load_match_stats(self):
 
@@ -300,9 +380,15 @@ class MatchWindow(Toplevel):
 
     def change_match_number(self, new_number, new_urls):
 
+        for value in self.after_blocked.values():
+            if value:
+                self.after(500, self.change_match_number, new_number, new_urls)
+                return
+
         if new_number != self.nb_matches:
-            for after_id in self.afters:
-                self.after_cancel(after_id)
+            for after_id in self.afters.values():
+                if after_id:
+                    self.after_cancel(after_id)
             for j in range(self.nb_matches):
                 self.MatchCanvas.delete("bg" + str(j))
                 self.MatchCanvas.delete("commentaire" + str(j))
@@ -319,8 +405,9 @@ class MatchWindow(Toplevel):
             self.load_match_stats()
 
         elif self.match_urls != new_urls:
-            for after_id in self.afters:
-                self.after_cancel(after_id)
+            for after_id in self.afters.values():
+                if after_id:
+                    self.after_cancel(after_id)
             self.change_matches(new_urls)
 
     def load_match_teams(self):
@@ -347,6 +434,7 @@ class MatchWindow(Toplevel):
                 i += 1
 
     def reload_match_score(self):
+        self.after_blocked["scores"] = True
         for j in range(self.nb_matches):
             match_page = requests.get(self.match_urls[j])
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
@@ -356,8 +444,10 @@ class MatchWindow(Toplevel):
                 i += 1
         print("Scores mis à jour")
         self.afters["scores"] = self.after(10000, self.reload_match_score)
+        self.after_blocked["scores"] = False
 
     def reload_match_commentaries(self):
+        self.after_blocked["commentaries"] = True
         for j in range(self.nb_matches):
             match_page = requests.get(self.match_urls[j])
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
@@ -372,8 +462,10 @@ class MatchWindow(Toplevel):
                 self.MatchCanvas.itemconfigure("commentaire" + str(j), text=a + " : " + b)
         print("Commentaires mis à jour")
         self.afters["commentaries"] = self.after(60000, self.reload_match_commentaries)
+        self.after_blocked["commentaries"] = False
 
     def reload_match_timer(self):
+        self.after_blocked["timer"] = True
         for j in range(self.nb_matches):
             match_page = requests.get(self.match_urls[j])
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
@@ -393,6 +485,7 @@ class MatchWindow(Toplevel):
 
         print("Timer mis à jour")
         self.afters["timer"] = self.after(60000, self.reload_match_timer)
+        self.after_blocked["timer"] = False
 
     def load_channel_stats(self, _video_link=""):
         channel_page = requests.get("https://www.youtube.com/channel/UCvahkUIQv3F1eYh7BV0CmbQ")
