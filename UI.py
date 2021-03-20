@@ -25,6 +25,9 @@ class ManagerWindow(Tk):
         self.MainFrame.grid(row=0, column=0)
         self.StreamFrame.grid(row=1, column=0)
 
+        self.csv_cursor = 0
+        self.csv_after = None
+
         self.MatchWindow = None
 
     def launch_match(self, nb_matches, url_list):
@@ -53,6 +56,26 @@ class ManagerWindow(Tk):
 
     def erase(self):
         self.MatchWindow = None
+
+    def load_from_csv(self):
+
+        url_list = []
+        with open("./ressources/schedule.csv", "r", encoding="utf8") as file:
+            i = 0
+            while i < 4:
+                try:
+                    url = file.readline().strip("\n").split(",")[0].strip("\ufeff")
+                    print(url)
+                    url_list.append(url)
+                    i += 1
+                except EOFError:
+                    break
+            self.csv_cursor += i
+
+        self.launch_match(i, url_list)
+
+    def waiter(self):
+        pass
 
 
 class MatchWindow(Toplevel):
@@ -83,7 +106,7 @@ class MatchWindow(Toplevel):
 
     def load_bases(self):
 
-        pil_image = PIL.Image.open("ressources/images/fond_direct.jpg")
+        pil_image = PIL.Image.open("./ressources/images/fond_direct.jpg")
         pil_image2 = pil_image.resize((1536, 864))
         pil_image.close()
         self.displayed_bg = PIL.ImageTk.PhotoImage(pil_image2)
@@ -91,7 +114,7 @@ class MatchWindow(Toplevel):
         self.MatchCanvas.create_image(770, 434, image=self.displayed_bg, tag="Background")
 
         pil_image2.close()
-        pil_image = PIL.Image.open("ressources/images/logo.png")
+        pil_image = PIL.Image.open("./ressources/images/logo.png")
         pil_image2 = pil_image.resize((100, 100))
         pil_image.close()
         self.displayed_logo = PIL.ImageTk.PhotoImage(pil_image2)
@@ -102,7 +125,7 @@ class MatchWindow(Toplevel):
 
         self.load_black()
 
-        iconlist = ["ressources/images/youtube.png", "ressources/images/views.png", "ressources/images/likes.png"]
+        iconlist = ["./ressources/images/youtube.png", "./ressources/images/views.png", "./ressources/images/likes.png"]
         for i in range(3):
             self.MatchCanvas.create_rectangle(1306, 20+70*i, 1486, 70+70*i, fill="white", outline="white")
             pil_image2.close()
@@ -117,7 +140,7 @@ class MatchWindow(Toplevel):
 
     def load_black(self):
 
-        pil_image = PIL.Image.open("ressources/images/affiche_vierge.png")
+        pil_image = PIL.Image.open("./ressources/images/affiche_vierge.png")
 
         if self.nb_matches == 1:
             pil_image2 = pil_image.resize((1150, 234))
@@ -442,15 +465,15 @@ class SetupFrame(Frame):
         self.old_number = 0
         self.url_entries = []
 
-        self.MatchButton = Button(self, text="Lancer le suivi", command=self.launch_match, bg='#4E4E4E',
-                                  fg='white')
+        self.MatchButton = Button(self, text="Lancer le suivi", command=self.launch_match, bg='#4E4E4E', fg='white')
         self.NumberRoll = Spinbox(self, from_=1, to=4, bg='#4E4E4E', fg='white')
-        self.NumberButton = Button(self, text="Valider", command=self.generate_urls, width=10, bg='#4E4E4E',
-                                   fg='white')
+        self.NumberButton = Button(self, text="Valider", command=self.generate_urls, width=10, bg='#4E4E4E', fg='white')
+        self.Schedule = Button(self, text="Schedule", command=self.launch_schedule, width=10, bg='#4E4E4E', fg='white')
 
         Label(self, text="Nombre de matches: ", width=20, bg='#4E4E4E', fg='white').grid(row=0, column=0)
         self.NumberRoll.grid(row=0, column=1, padx=10, pady=10)
         self.NumberButton.grid(row=0, column=2, padx=10, pady=10)
+        self.Schedule.grid(row=0, column=3, padx=10, pady=10)
 
         self.generate_urls()
 
@@ -475,8 +498,17 @@ class SetupFrame(Frame):
     def launch_match(self, _event=None):
 
         if self.old_number:
-            self.master.launch_match(nb_matches=self.old_number, url_list=[i.get() for
-                                     i in self.url_entries])
+            url_list = []
+            for i in self.url_entries:
+                if i.get() and i.get()[:40] == "https://www.matchendirect.fr/live-score/" and \
+                        i.get()[-5:] == ".html":
+                    url_list.append(i.get())
+                else:
+                    return
+            self.master.launch_match(nb_matches=self.old_number, url_list=url_list)
+
+    def launch_schedule(self):
+        self.master.load_from_csv()
 
 
 class EditFrame(Frame):
