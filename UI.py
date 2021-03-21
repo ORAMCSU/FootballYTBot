@@ -1,9 +1,11 @@
+import pickle
 from tkinter import *
 from tkinter.ttk import Separator
 from tkinter.filedialog import askopenfilename
 from tkinter.messagebox import showerror
 import PIL.ImageTk
 import PIL.Image
+import googleapiclient.discovery
 import requests
 import bs4
 import json
@@ -157,11 +159,18 @@ class ManagerWindow(Tk):
             self.csv_links.pop(0)
 
 
+def authenticate():
+    with open("ressources/credentials", 'rb') as f:
+        credentials = pickle.load(f)
+    return googleapiclient.discovery.build("youtube", "v3", credentials=credentials)
+
+
 class MatchWindow(Toplevel):
 
     def __init__(self, master: ManagerWindow, nb_matches=1, url_list=None, video_url=None):
 
         Toplevel.__init__(self, master)
+        self.youtube = authenticate()
         self.master = master
         self.title("Match Stream")
         self.match_urls = url_list
@@ -170,6 +179,8 @@ class MatchWindow(Toplevel):
         self.stop_gif = False
         self.afters = {"scores": None, "timer": None, "commentaries": None, "gif": None}
         self.after_blocked = {"scores": False, "timer": False, "commentaries": False, "gif": False}
+        self.videos_infos = {"video_id": None, "title": "", "description": ["lol", "#imaprogrammer"],
+                             "tags": ["lol", "#imaprogrammer"]}
 
         self.video_url = video_url
         self.MatchCanvas = Canvas(self, width=1536, height=864)
@@ -185,6 +196,26 @@ class MatchWindow(Toplevel):
         self.load_bases()
         self.load_channel_stats()
         self.load_match_stats()
+
+    def update_videos(self, id_video, title, description, tags):
+        print(id_video)
+        print(title)
+        print(description)
+        print(tags)
+        videos_list_response = self.youtube.videos().list(id=id_video, part="snippet").execute()
+
+        if not videos_list_response["items"]:
+            print('Video "%s" was not found.' % id_video)
+            sys.exit(1)
+
+        videos_list_snippet = videos_list_response["items"][0]["snippet"]
+
+        videos_list_snippet["title"] = title
+        videos_list_snippet["description"] = description
+        videos_list_snippet["tags"] = tags
+
+        self.youtube.videos()\
+            .update(part="snippet", body=dict(snippet=videos_list_snippet, id=id_video)).execute()
 
     def load_bases(self):
 
@@ -418,17 +449,25 @@ class MatchWindow(Toplevel):
     def load_match_teams(self):
 
         self.displayed_teamlogos = []
+        self.videos_infos["title"] = "[Score en direct]"
 
         for j in range(self.nb_matches):
             if j >= len(self.match_urls):
                 return
 
+            self.videos_infos["title"] += " "
             match_page = requests.get(self.match_urls[j])
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
             i = 0
             for div in soup.find_all("div", class_="col-xs-4 text-center team"):
                 self.MatchCanvas.itemconfigure("TeamName"+str(2*j+i), text=div.text[1:-1].replace(" ", "\n"))
+                self.videos_infos["title"] += div.text[1:-1]
+                if i == 0:
+                    self.videos_infos["title"] += "-"
                 i += 1
+
+            if j != (self.nb_matches-1):
+                self.videos_infos["title"] += " |"
 
             i = 0
             for div in soup.find_all("div", class_="col-xs-4 text-center"):
@@ -437,6 +476,10 @@ class MatchWindow(Toplevel):
                 self.displayed_teamlogos.append(PIL.ImageTk.PhotoImage(pil_image))
                 self.MatchCanvas.itemconfigure("Teamlogo" + str(2*j+i), image=self.displayed_teamlogos[2*j+i])
                 i += 1
+        print(self.videos_infos)
+        if self.videos_infos["video_id"]:
+            self.update_videos(self.videos_infos["video_id"], self.videos_infos["title"],
+                               "\n".join(self.videos_infos["description"]), list(set(self.videos_infos["tags"])))
 
     def reload_match_score(self):
         self.after_blocked["scores"] = True
@@ -492,39 +535,35 @@ class MatchWindow(Toplevel):
         self.afters["timer"] = self.after(60000, self.reload_match_timer)
         self.after_blocked["timer"] = False
 
-    def load_channel_stats(self, _video_link=""):
-        channel_page = requests.get("https://www.youtube.com/channel/UCvahkUIQv3F1eYh7BV0CmbQ")
-        soup = bs4.BeautifulSoup(channel_page.text, "html.parser")
-        script = str(soup.find_all("script")[-7])
-        index = script.find("ytInitialData = ")
-        script = script[index+len("ytInitialData = "):-10]
-        full_text = json.loads(script)["header"]["c4TabbedHeaderRenderer"]["subscriberCountText"]["simpleText"]
-        self.MatchCanvas.create_text(1416, 45, text=full_text.replace(" ", "\xa0").split("\xa0")[0],
+    def load_channel_stats(self):
+        channel_list_response = self.youtube.channels().list(mine=True, part='statistics').execute()
+        full_text = channel_list_response["items"][0]["statistics"]["subscriberCount"]
+        self.MatchCanvas.create_text(1416, 45, text=full_text,
                                      font=["Ubuntu", 20], tag="Subs")
 
     def load_video_stats(self, video_link=""):
-        video = new(video_link)
+        self.videos_infos["video_id"] = video_link.split("?v=")[1].split("&ab")[0]
 
-        self.MatchCanvas.create_text(1416, 115, text=str(video.viewcount),
+        self.update_videos(self.videos_infos["video_id"], self.videos_infos["title"],
+                           "\n".join(self.videos_infos["description"]), list(set(self.videos_infos["tags"])))
+
+        print(self.videos_infos)
+
+        stats = self.youtube.videos().list(id=self.videos_infos["video_id"], part="statistics").execute()
+        video = stats["items"][0]["statistics"]
+
+        self.MatchCanvas.create_text(1416, 115, text=str(video["viewCount"]),
                                      font=["Ubuntu", 20], tag="Views")
-        self.MatchCanvas.create_text(1416, 185, text=str(video.likes),
+        self.MatchCanvas.create_text(1416, 185, text=str(video["likeCount"]),
                                      font=["Ubuntu", 20], tag="Likes")
 
         self.after(60000, self.reload_video_stats, video_link)
 
     def reload_video_stats(self, video_link="", iteration=0):
-        video = new(video_link)
-        self.MatchCanvas.itemconfigure("Views", text=str(video.viewcount))
-        self.MatchCanvas.itemconfigure("Likes", text=str(video.likes+1))
-
-        if iteration == 6:
-            channel_page = requests.get("https://www.youtube.com/channel/UCvahkUIQv3F1eYh7BV0CmbQ")
-            soup = bs4.BeautifulSoup(channel_page.text, "html.parser")
-            script = str(soup.find_all("script")[-7])
-            index = script.find("ytInitialData = ")
-            script = script[index + len("ytInitialData = "):-10]
-            full_text = json.loads(script)["header"]["c4TabbedHeaderRenderer"]["subscriberCountText"]["simpleText"]
-            self.MatchCanvas.itemconfigure("Subs", text=full_text.replace(" ", "\xa0").split("\xa0")[0])
+        stats = self.youtube.videos().list(id=self.videos_infos["video_id"], part="statistics").execute()
+        video = stats["items"][0]["statistics"]
+        self.MatchCanvas.itemconfigure("Views", text=str(video["viewCount"]))
+        self.MatchCanvas.itemconfigure("Likes", text=str(int(video["likeCount"])+1))
 
         self.after(60000, self.reload_video_stats, video_link, iteration + 1)
         print("Stats mises à jour")
