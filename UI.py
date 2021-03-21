@@ -1,6 +1,7 @@
 from tkinter import *
-from tkinter import ttk
+from tkinter.ttk import Separator
 from tkinter.filedialog import askopenfilename
+from tkinter.messagebox import showerror
 import PIL.ImageTk
 import PIL.Image
 import requests
@@ -166,6 +167,7 @@ class MatchWindow(Toplevel):
         self.match_urls = url_list
         self.nb_matches = nb_matches
         self.gif = []
+        self.stop_gif = False
         self.afters = {"scores": None, "timer": None, "commentaries": None, "gif": None}
         self.after_blocked = {"scores": False, "timer": False, "commentaries": False, "gif": False}
 
@@ -179,6 +181,7 @@ class MatchWindow(Toplevel):
         self.displayed_icons = []
         self.displayed_teamlogos = []
 
+        self.load_gif()
         self.load_bases()
         self.load_channel_stats()
         self.load_match_stats()
@@ -246,7 +249,6 @@ class MatchWindow(Toplevel):
                                               image=self.displayed_black, tag="Black" + str(i))
 
     def load_gif(self):
-        self.after_blocked["gif"] = True
         gifimg = PIL.Image.open("./ressources/images/gif-eye.gif")
 
         for i in range(55):
@@ -254,10 +256,6 @@ class MatchWindow(Toplevel):
             self.gif.append(PIL.ImageTk.PhotoImage(gifimg.copy().resize((30, 30))))
 
         gifimg.close()
-
-        self.MatchCanvas.create_image(770, 430, image=self.gif[0], tag="gif")
-        self.afters["gif"] = self.after(100, self.play_gif, 1, 2000 // 55)
-        self.after_blocked["gif"] = False
 
     def load_match_stats(self):
 
@@ -274,8 +272,8 @@ class MatchWindow(Toplevel):
                     self.MatchCanvas.create_text(195 * (1 - i) + (1 - 2 * i) * 493 + 1347 * i, 535, font=["Ubuntu", 40],
                                                  fill="white", justify="center", tag="score"+str(i))
 
-                self.MatchCanvas.create_rectangle(221, 640, 1321, 700, tag="bg" + str(j), width=0)
-                self.MatchCanvas.create_text(771, 670, font=["Arial", 12],
+                self.MatchCanvas.create_rectangle(221, 625, 1321, 720, tag="bg" + str(j), width=0)
+                self.MatchCanvas.create_text(771, 672, font=["Arial", 12],
                                              fill="black", tag="commentaire" + str(j), width=1100)
 
                 for i in range(2):
@@ -283,6 +281,7 @@ class MatchWindow(Toplevel):
                                                                                                          str(2*j+i))
 
                 self.MatchCanvas.create_text(771, 448, justify="center", tag="timer" + str(j))
+                self.MatchCanvas.create_image(720, 448, image=self.gif[0], tag="gif")
 
             elif self.nb_matches == 2:
                 for i in range(2):
@@ -305,6 +304,7 @@ class MatchWindow(Toplevel):
                                                   tag="Teamlogo" + str(2*j+i))
 
                 self.MatchCanvas.create_text(771, 307 + 270 * j, justify="center", tag="timer" + str(j))
+                self.MatchCanvas.create_image(725,  307 + 270 * j, image=self.gif[0], tag="gif")
 
             elif self.nb_matches == 3:
                 for i in range(2):
@@ -334,6 +334,8 @@ class MatchWindow(Toplevel):
 
                 self.MatchCanvas.create_text(771 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
                                              justify="center", tag="timer" + str(j))
+                self.MatchCanvas.create_image(730 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
+                                              image=self.gif[0], tag="gif")
 
             elif self.nb_matches == 4:
                 for i in range(2):
@@ -364,6 +366,8 @@ class MatchWindow(Toplevel):
 
                 self.MatchCanvas.create_text(771 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
                                              justify="center", tag="timer" + str(j))
+                self.MatchCanvas.create_image(730 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
+                                              image=self.gif[0], tag="gif")
 
         self.load_match_teams()
         self.reload_match_score()
@@ -379,11 +383,12 @@ class MatchWindow(Toplevel):
         self.reload_match_timer()
 
     def change_match_number(self, new_number, new_urls):
-
+        self.stop_gif = True
         for value in self.after_blocked.values():
             if value:
                 self.after(500, self.change_match_number, new_number, new_urls)
                 return
+        self.stop_gif = False
 
         if new_number != self.nb_matches:
             for after_id in self.afters.values():
@@ -531,11 +536,17 @@ class MatchWindow(Toplevel):
             current = self.MatchCanvas.itemcget(tag, "font").split(" ")
             self.MatchCanvas.itemconfigure(tag, font=[current[0], int(current[1])+direction[0]])
 
-    def play_gif(self, i=1, wait=100):
+    def play_gif(self, i=1):
+        self.after_blocked["gif"] = True
         self.MatchCanvas.itemconfigure("gif", image=self.gif[i])
         i += 1
         i %= 55
-        self.afters["gif"] = self.after(wait, self.play_gif, i, wait)
+
+        if not self.stop_gif:
+            self.afters["gif"] = self.after(2000//55, self.play_gif, i)
+        else:
+            self.afters["gif"] = None
+        self.after_blocked["gif"] = False
 
     def playback(self, filename):
         mixer.init()
@@ -597,6 +608,7 @@ class SetupFrame(Frame):
                         i.get()[-5:] == ".html":
                     url_list.append(i.get())
                 else:
+                    showerror("Mauvaises urls", "Vérifiez la validité des urls entrées.")
                     return
             self.master.launch_match(nb_matches=self.old_number, url_list=url_list)
 
@@ -655,14 +667,14 @@ class EditFrame(Frame):
         for i in self.SubFrame.grid_slaves():
             i.destroy()
 
-        ttk.Separator(self.SubFrame, orient="horizontal").grid(row=0, column=0, columnspan=20,
-                                                               sticky="we", pady=4)
+        Separator(self.SubFrame, orient="horizontal").grid(row=0, column=0, columnspan=20,
+                                                           sticky="we", pady=4)
 
         for i in range(self.nb_matches):
             Label(self.SubFrame, text="Match " + str(i + 1),
                   bg='#4E4E4E', fg='white').grid(row=3*i+1, column=1, rowspan=2, padx=10, pady=10)
-            ttk.Separator(self.SubFrame, orient="vertical").grid(row=3*i+1, column=2, rowspan=2,
-                                                                 sticky="ns", padx=10, pady=4)
+            Separator(self.SubFrame, orient="vertical").grid(row=3*i+1, column=2, rowspan=2,
+                                                             sticky="ns", padx=10, pady=4)
             Label(self.SubFrame, text="Timer :",
                   bg='#4E4E4E', fg='white').grid(row=3*i+1, column=3, rowspan=2, padx=10, pady=10)
             Button(self.SubFrame, text="\U000025C0", fg='white',
@@ -683,12 +695,12 @@ class EditFrame(Frame):
             Button(self.SubFrame, text="\U000025BC", fg='white',
                    command=partial(self.move, "timer" + str(i), (-1, -1)),
                    bg='#4E4E4E').grid(row=3*i+2, column=7, padx=10, pady=10)
-            ttk.Separator(self.SubFrame, orient="horizontal").grid(row=3*i+3, column=0, columnspan=20,
-                                                                   sticky="we", pady=4)
+            Separator(self.SubFrame, orient="horizontal").grid(row=3*i+3, column=0, columnspan=20,
+                                                               sticky="we", pady=4)
 
             for j in range(2):
-                ttk.Separator(self.SubFrame, orient="vertical").grid(row=3*i+1, column=6*(j+1)+2, rowspan=2,
-                                                                     sticky="ns", padx=10, pady=4)
+                Separator(self.SubFrame, orient="vertical").grid(row=3*i+1, column=6*(j+1)+2, rowspan=2,
+                                                                 sticky="ns", padx=10, pady=4)
                 Label(self.SubFrame, text="Equipe "+str(j+1)+" :",
                       bg='#4E4E4E', fg='white').grid(row=3*i+1, column=6*(j+1)+3, rowspan=2, padx=10, pady=10)
                 Button(self.SubFrame, text="\U000025C0", fg='white',
