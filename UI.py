@@ -1,4 +1,4 @@
-import pickle
+from pickle import load
 from tkinter import *
 from tkinter.ttk import Separator
 from tkinter.filedialog import askopenfilename
@@ -8,11 +8,9 @@ import PIL.Image
 import googleapiclient.discovery
 import requests
 import bs4
-import json
 from functools import partial
 from pygame import mixer
-from pafy import new
-from time import localtime
+from time import localtime, strptime, mktime, time
 
 
 class ManagerWindow(Tk):
@@ -35,15 +33,15 @@ class ManagerWindow(Tk):
 
         self.MatchWindow = None
 
-    def launch_match(self, nb_matches, url_list):
+    def launch_match(self, nb_matches, url_list, empty_text=""):
 
         if not self.MatchWindow:
-            self.MatchWindow = MatchWindow(master=self, nb_matches=nb_matches, url_list=url_list)
+            self.MatchWindow = MatchWindow(master=self, nb_matches=nb_matches, url_list=url_list, empty_text=empty_text)
 
             self.StreamFrame.load_edit(nb_matches)
 
         else:
-            self.MatchWindow.change_match_number(nb_matches, url_list)
+            self.MatchWindow.change_match_number(nb_matches, url_list, empty_text=empty_text)
             self.StreamFrame.load_edit(nb_matches)
 
     def move(self, tag, direction):
@@ -75,7 +73,7 @@ class ManagerWindow(Tk):
         self.csv_match()
 
     def csv_match(self):
-        print(self.csv_links)
+        print("Changement de matchs")
         i = 0
         url_list = []
         while i < 4 and i < len(self.csv_links) and self.csv_links[i][1] == -1:
@@ -83,15 +81,20 @@ class ManagerWindow(Tk):
             i += 1
 
         self.current_csv = i
+        message = ""
+        if self.current_csv == 0 and self.csv_links:
+            cast_time = localtime(self.csv_links[0][1] * 60)
+            now = localtime()
+            if now.tm_mday != cast_time.tm_mday or now.tm_mon != cast_time.tm_mon or now.tm_year != cast_time.tm_year:
+                message = " le "+str(cast_time.tm_mday)+"/"+"{0:0=2d}".format(cast_time.tm_mon)
+            message += " à "+str(cast_time.tm_hour)+"h"+"{0:0=2d}".format(cast_time.tm_min) + "."
 
-        self.launch_match(i, url_list)
+        self.launch_match(i, url_list, message)
         self.waiter()
 
     def waiter(self):
 
-        now = localtime()
-        now = now.tm_min + now.tm_hour * 60
-        print(now)
+        now = int(time()//60)
         if self.current_csv < len(self.csv_links) and self.current_csv < 4:
             if self.csv_links[self.current_csv][1]-now-5 < 0:
                 self.rotate_matches()
@@ -106,7 +109,6 @@ class ManagerWindow(Tk):
         self.check_finished()
         self.csv_links.sort(key=lambda i: i[1])
         self.clean_list()
-        print(self.current_csv)
         self.csv_match()
 
     def free_matches(self):
@@ -131,19 +133,24 @@ class ManagerWindow(Tk):
 
     def timer(self):
 
-        now = localtime()
-        now = now.tm_min + now.tm_hour * 60
+        time_conv = {"janvier": 1, "février": 2, "mars": 3, "avril": 4, "mai": 5, "juin": 6,
+                     "juillet": 7, "août": 8, "septembre": 9, "octobre": 10, "novembre": 11, "décembre": 12}
+        now = int(time()//60)
 
         for link in self.csv_links:
             match_page = requests.get(link[0])
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
             minute_text = soup.find(class_="status").text
             if minute_text.split(" ")[0] == "Coup":
-                cast_time = minute_text.split(" ")[-1]
-                cast_time = int(cast_time.split("h")[0])*60+int(cast_time.split("h")[1])
+                start = soup.find("div", class_="info1").text.split("|")[0]
+                start = start.split(" ")[1:4] + [start.split(" ")[-2]]
+                start[1] = time_conv[start[1]]
+                cast_time = strptime(str(start), "['%d', %m, '%Y', '%Hh%M']")
+                cast_time = int(mktime(cast_time)//60)
                 if cast_time < now:
-                    cast_time += 1440
-                link[1] = cast_time
+                    link[1] = -1
+                else:
+                    link[1] = cast_time
             elif minute_text == " Mi-temps":
                 link[1] = -1  # match ongoing
             elif minute_text == "Match terminé":
@@ -157,24 +164,20 @@ class ManagerWindow(Tk):
 
         while self.csv_links[0][1] == -2:
             self.csv_links.pop(0)
-
-
-def authenticate():
-    with open("ressources/credentials", 'rb') as f:
-        credentials = pickle.load(f)
-    return googleapiclient.discovery.build("youtube", "v3", credentials=credentials)
+            if not self.csv_links:
+                return
 
 
 class MatchWindow(Toplevel):
 
-    def __init__(self, master: ManagerWindow, nb_matches=1, url_list=None, video_url=None):
+    def __init__(self, master: ManagerWindow, nb_matches, url_list=None, empty_text=""):
 
         Toplevel.__init__(self, master)
-        self.youtube = authenticate()
+        self.youtube = self.authenticate()
         self.master = master
         self.title("Match Stream")
-        self.match_urls = url_list
-        self.nb_matches = nb_matches
+        self.match_urls = []
+        self.nb_matches = -1
         self.gif = []
         self.stop_gif = False
         self.afters = {"scores": None, "timer": None, "commentaries": None, "gif": None}
@@ -182,7 +185,6 @@ class MatchWindow(Toplevel):
         self.videos_infos = {"video_id": None, "title": "", "description": ["lol", "#imaprogrammer"],
                              "tags": ["lol", "#imaprogrammer"]}
 
-        self.video_url = video_url
         self.MatchCanvas = Canvas(self, width=1536, height=864)
         self.MatchCanvas.grid(row=0, column=0)
 
@@ -195,13 +197,9 @@ class MatchWindow(Toplevel):
         self.load_gif()
         self.load_bases()
         self.load_channel_stats()
-        self.load_match_stats()
+        self.change_match_number(nb_matches, url_list, empty_text)
 
     def update_videos(self, id_video, title, description, tags):
-        print(id_video)
-        print(title)
-        print(description)
-        print(tags)
         videos_list_response = self.youtube.videos().list(id=id_video, part="snippet").execute()
 
         if not videos_list_response["items"]:
@@ -399,7 +397,6 @@ class MatchWindow(Toplevel):
                                              justify="center", tag="timer" + str(j))
                 self.MatchCanvas.create_image(730 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
                                               image=self.gif[0], tag="gif")
-
         self.load_match_teams()
         self.reload_match_score()
         self.reload_match_commentaries()
@@ -413,13 +410,15 @@ class MatchWindow(Toplevel):
         self.reload_match_commentaries()
         self.reload_match_timer()
 
-    def change_match_number(self, new_number, new_urls):
+    def change_match_number(self, new_number, new_urls, empty_text=""):
         self.stop_gif = True
         for value in self.after_blocked.values():
             if value:
                 self.after(500, self.change_match_number, new_number, new_urls)
                 return
         self.stop_gif = False
+
+        self.MatchCanvas.delete("Empty")
 
         if new_number != self.nb_matches:
             for after_id in self.afters.values():
@@ -437,8 +436,17 @@ class MatchWindow(Toplevel):
 
             self.nb_matches = new_number
             self.match_urls = new_urls
-            self.load_black()
-            self.load_match_stats()
+            if self.nb_matches:
+                self.load_black()
+                self.load_match_stats()
+            else:
+                if not empty_text:
+                    self.MatchCanvas.create_text(770, 480, text="C'est fini pour aujourd'hui. " +
+                                                                "Il n'y a plus de match prévus. Bisous la team.",
+                                                 tag="Empty", font=["Ubuntu", 30])
+                else:
+                    self.MatchCanvas.create_text(770, 480, text="Prochain match prévu"+empty_text, tag="Empty",
+                                                 font=["Ubuntu", 30])
 
         elif self.match_urls != new_urls:
             for after_id in self.afters.values():
@@ -476,7 +484,7 @@ class MatchWindow(Toplevel):
                 self.displayed_teamlogos.append(PIL.ImageTk.PhotoImage(pil_image))
                 self.MatchCanvas.itemconfigure("Teamlogo" + str(2*j+i), image=self.displayed_teamlogos[2*j+i])
                 i += 1
-        print(self.videos_infos)
+
         if self.videos_infos["video_id"]:
             self.update_videos(self.videos_infos["video_id"], self.videos_infos["title"],
                                "\n".join(self.videos_infos["description"]), list(set(self.videos_infos["tags"])))
@@ -536,10 +544,14 @@ class MatchWindow(Toplevel):
         self.after_blocked["timer"] = False
 
     def load_channel_stats(self):
+        self.MatchCanvas.create_text(1416, 45, font=["Ubuntu", 20], tag="Subs")
+        self.reload_channel_stats()
+
+    def reload_channel_stats(self):
         channel_list_response = self.youtube.channels().list(mine=True, part='statistics').execute()
         full_text = channel_list_response["items"][0]["statistics"]["subscriberCount"]
-        self.MatchCanvas.create_text(1416, 45, text=full_text,
-                                     font=["Ubuntu", 20], tag="Subs")
+        self.MatchCanvas.itemconfigure("Subs", text=full_text)
+        self.after(65000, self.reload_channel_stats)
 
     def load_video_stats(self, video_link=""):
         self.videos_infos["video_id"] = video_link.split("?v=")[1].split("&ab")[0]
@@ -557,15 +569,15 @@ class MatchWindow(Toplevel):
         self.MatchCanvas.create_text(1416, 185, text=str(video["likeCount"]),
                                      font=["Ubuntu", 20], tag="Likes")
 
-        self.after(60000, self.reload_video_stats, video_link)
+        self.after(60000, self.reload_video_stats)
 
-    def reload_video_stats(self, video_link="", iteration=0):
+    def reload_video_stats(self):
         stats = self.youtube.videos().list(id=self.videos_infos["video_id"], part="statistics").execute()
         video = stats["items"][0]["statistics"]
         self.MatchCanvas.itemconfigure("Views", text=str(video["viewCount"]))
         self.MatchCanvas.itemconfigure("Likes", text=str(int(video["likeCount"])+1))
 
-        self.after(60000, self.reload_video_stats, video_link, iteration + 1)
+        self.after(60000, self.reload_video_stats)
         print("Stats mises à jour")
 
     def move(self, tag, direction: tuple):
@@ -598,6 +610,11 @@ class MatchWindow(Toplevel):
             mixer.quit()
         self.master.erase()
         Toplevel.destroy(self)
+
+    def authenticate(self):
+        with open("ressources/credentials", 'rb') as f:
+            credentials = load(f)
+        return googleapiclient.discovery.build("youtube", "v3", credentials=credentials)
 
 
 class SetupFrame(Frame):
