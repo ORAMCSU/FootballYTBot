@@ -10,6 +10,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\ressources\schedule.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=":" />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\ressources\video_info.json">
           <value>
             <Attribute>

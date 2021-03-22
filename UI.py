@@ -192,8 +192,9 @@ class MatchWindow(Toplevel):
         self.stop_gif = False
         self.afters = {"scores": None, "timer": None, "commentaries": None, "gif": None}
         self.after_blocked = {"scores": False, "timer": False, "commentaries": False, "gif": False}
-        self.videos_infos = {"video_id": None, "title": "", "description": ["lol", "#imaprogrammer"],
-                             "tags": ["lol", "#imaprogrammer"]}
+        self.videos_infos = {"video_id": None, "title": "", "description": [], "tags": []}
+        self.base_description = ["", "Subscribe! /Abonne-toi!",
+                                 "https://www.youtube.com/channel/UCvahkUIQv3F1eYh7BV0CmbQ?sub_confirmation=1", ""]
 
         self.MatchCanvas = Canvas(self, width=1536, height=864)
         self.MatchCanvas.grid(row=0, column=0)
@@ -468,24 +469,46 @@ class MatchWindow(Toplevel):
 
         self.displayed_teamlogos = []
         self.videos_infos["title"] = "[Score en direct]"
+        dict_head_description = {}
+        hashtag_description = []
 
         for j in range(self.nb_matches):
             if j >= len(self.match_urls):
                 return
 
-            self.videos_infos["title"] += " "
+            match_title = " "
+            match_head_description = ""
             match_page = requests.get(self.match_urls[j])
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
+            championnat = soup.find("div", class_="info1").text.split("|")[1][1:-1]
+            if not championnat in dict_head_description:
+                dict_head_description[championnat] = [""]
+            hashtag = "#" + championnat.lower().replace(" ", "").replace("-", "")
+            if not (hashtag in hashtag_description):
+                hashtag_description.append(hashtag)
             i = 0
             for div in soup.find_all("div", class_="col-xs-4 text-center team"):
                 self.MatchCanvas.itemconfigure("TeamName"+str(2*j+i), text=div.text[1:-1].replace(" ", "\n"))
-                self.videos_infos["title"] += div.text[1:-1]
+                match_title += div.text[1:-1]
+                match_head_description += div.text[1:-1]
+                hashtag = "#" + div.text[1:-1].lower().replace(" ", "").replace("-", "")
+                hashtag_description.append(hashtag)
                 if i == 0:
-                    self.videos_infos["title"] += "-"
+                    match_title += "-"
+                    match_head_description += " - "
                 i += 1
 
+            match_head_description += " | [Score en direct]"
+            dict_head_description[championnat].append(match_head_description)
+
             if j != (self.nb_matches-1):
-                self.videos_infos["title"] += " |"
+                match_title += " |"
+
+            if len(self.videos_infos["title"] + match_title) <= 100:
+                self.videos_infos["title"] += match_title
+            if self.videos_infos["title"][0:18] == "[Score en direct]" and \
+                    len(self.videos_infos["title"][18:] + match_title) <= 100:
+                self.videos_infos["title"] = self.videos_infos["title"][18:] + match_title
 
             i = 0
             for div in soup.find_all("div", class_="col-xs-4 text-center"):
@@ -495,6 +518,18 @@ class MatchWindow(Toplevel):
                 self.MatchCanvas.itemconfigure("Teamlogo" + str(2*j+i), image=self.displayed_teamlogos[2*j+i])
                 i += 1
 
+        if self.videos_infos["title"][-1] == "|":
+            self.videos_infos["title"] = self.videos_infos["title"][:-1]
+
+        head_description = []
+        for key in dict_head_description:
+            head_description.append(key)
+            for match in dict_head_description[key]:
+                head_description.append(match)
+            head_description.append("")
+
+        self.videos_infos["description"] = head_description + self.base_description + hashtag_description
+        print(self.videos_infos)
         if self.videos_infos["video_id"]:
             self.update_videos(self.videos_infos["video_id"], self.videos_infos["title"],
                                "\n".join(self.videos_infos["description"]), list(set(self.videos_infos["tags"])))
