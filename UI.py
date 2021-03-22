@@ -137,28 +137,37 @@ class ManagerWindow(Tk):
                      "juillet": 7, "août": 8, "septembre": 9, "octobre": 10, "novembre": 11, "décembre": 12}
         now = int(time()//60)
 
+        error_urls = []
+
         for link in self.csv_links:
             match_page = requests.get(link[0])
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
-            minute_text = soup.find(class_="status").text
-            if minute_text.split(" ")[0] == "Coup":
-                start = soup.find("div", class_="info1").text.split("|")[0]
-                start = start.split(" ")[1:4] + [start.split(" ")[-2]]
-                start[1] = time_conv[start[1]]
-                cast_time = strptime(str(start), "['%d', %m, '%Y', '%Hh%M']")
-                cast_time = int(mktime(cast_time)//60)
-                if cast_time < now:
-                    link[1] = -1
+            if soup.find("title").text != "Erreur 404":
+                minute_text = soup.find(class_="status").text
+                if minute_text.split(" ")[0] == "Coup":
+                    start = soup.find("div", class_="info1").text.split("|")[0]
+                    start = start.split(" ")[1:4] + [start.split(" ")[-2]]
+                    start[1] = time_conv[start[1]]
+                    cast_time = strptime(str(start), "['%d', %m, '%Y', '%Hh%M']")
+                    cast_time = int(mktime(cast_time)//60)
+                    if cast_time < now:
+                        link[1] = -1
+                    else:
+                        link[1] = cast_time
+                elif minute_text == " Mi-temps":
+                    link[1] = -1  # match ongoing
+                elif minute_text == "Match terminé":
+                    link[1] = -2
                 else:
-                    link[1] = cast_time
-            elif minute_text == " Mi-temps":
-                link[1] = -1  # match ongoing
-            elif minute_text == "Match terminé":
-                link[1] = -2
+                    link[1] = -1  # match ongoing
             else:
-                link[1] = -1  # match ongoing
+                error_urls.append(link[0])
 
         self.csv_links.sort(key=lambda i: i[1])
+
+        if error_urls:
+            showerror("Erreur 404", f"Le(s) match(s) que vous cherchez, {error_urls}, " +
+                      "n'existe(nt) pas sur matchendirect.")
 
     def clean_list(self):
 
@@ -289,7 +298,7 @@ class MatchWindow(Toplevel):
 
     def load_match_stats(self):
 
-        font_sizes = ((30, 40, 12, (12, 35)), (22, 40, 10, (10, 25)), (20, 35, 8, (7, 20)), (20, 35, 8, (7, 20)))
+        # font_sizes = ((30, 40, 12, (12, 35)), (22, 40, 10, (10, 25)), (20, 35, 8, (7, 20)), (20, 35, 8, (7, 20)))
 
         for j in range(self.nb_matches):
 
@@ -663,7 +672,12 @@ class SetupFrame(Frame):
             for i in self.url_entries:
                 if i.get() and i.get()[:40] == "https://www.matchendirect.fr/live-score/" and \
                         i.get()[-5:] == ".html":
-                    url_list.append(i.get())
+                    if bs4.BeautifulSoup(requests.get(i.get()), "html.parser").find("title").text != "Erreur 404":
+                        url_list.append(i.get())
+                    else:
+                        showerror("Erreur 404", f"Le match que vous cherchez, {i.get()}, " +
+                                  "n'existe pas sur matchendirect.")
+                        return
                 else:
                     showerror("Mauvaises urls", "Vérifiez la validité des urls entrées.")
                     return
