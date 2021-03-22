@@ -72,12 +72,22 @@ class ManagerWindow(Tk):
             if after:
                 self.after_cancel(after)
 
+        error_urls = []
         self.csv_links = []
         with open("./ressources/schedule.csv", "r", encoding="utf8") as file:
             url = file.readline().strip("\n").split(",")[0].strip("\ufeff")
             while url:
-                self.csv_links.append([url, 0])
+                match_page = requests.get(url)
+                soup = bs4.BeautifulSoup(match_page.text, "html.parser")
+                if soup.find("title").text != "Erreur 404":
+                    self.csv_links.append([url, 0])
+                else:
+                    error_urls.append(url)
                 url = file.readline().strip("\n").split(",")[0].strip("\ufeff")
+
+        if error_urls:
+            showerror("Erreur 404", f"Le(s) match(s) que vous cherchez, {error_urls}, " +
+                      "n'existe(nt) pas sur matchendirect.")
 
         self.timer()
         self.clean_list()
@@ -158,37 +168,28 @@ class ManagerWindow(Tk):
                      "juillet": 7, "août": 8, "septembre": 9, "octobre": 10, "novembre": 11, "décembre": 12}
         now = int(time()//60)
 
-        error_urls = []
-
         for link in self.csv_links:
             match_page = requests.get(link[0])
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
-            if soup.find("title").text != "Erreur 404":
-                minute_text = soup.find(class_="status").text
-                if minute_text.split(" ")[0] == "Coup":
-                    start = soup.find("div", class_="info1").text.split("|")[0]
-                    start = start.split(" ")[1:4] + [start.split(" ")[-2]]
-                    start[1] = time_conv[start[1]]
-                    cast_time = strptime(str(start), "['%d', %m, '%Y', '%Hh%M']")
-                    cast_time = int(mktime(cast_time)//60)
-                    if cast_time-5 < now:
-                        link[1] = -1
-                    else:
-                        link[1] = cast_time
-                elif minute_text == " Mi-temps":
-                    link[1] = -1  # match ongoing
-                elif minute_text == "Match terminé":
-                    link[1] = -2
+            minute_text = soup.find(class_="status").text
+            if minute_text.split(" ")[0] == "Coup":
+                start = soup.find("div", class_="info1").text.split("|")[0]
+                start = start.split(" ")[1:4] + [start.split(" ")[-2]]
+                start[1] = time_conv[start[1]]
+                cast_time = strptime(str(start), "['%d', %m, '%Y', '%Hh%M']")
+                cast_time = int(mktime(cast_time)//60)
+                if cast_time-5 < now:
+                    link[1] = -1
                 else:
-                    link[1] = -1  # match ongoing
+                    link[1] = cast_time
+            elif minute_text == " Mi-temps":
+                link[1] = -1  # match ongoing
+            elif minute_text == "Match terminé":
+                link[1] = -2
             else:
-                error_urls.append(link[0])
+                link[1] = -1  # match ongoing
 
         self.csv_links.sort(key=lambda i: i[1])
-
-        if error_urls:
-            showerror("Erreur 404", f"Le(s) match(s) que vous cherchez, {error_urls}, " +
-                      "n'existe(nt) pas sur matchendirect.")
 
     def clean_list(self):
 
