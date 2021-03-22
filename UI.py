@@ -216,6 +216,9 @@ class MatchWindow(Toplevel):
         self.videos_infos = {"video_id": None, "title": "", "description": [], "tags": []}
         self.base_description = ["", "Subscribe! /Abonne-toi!",
                                  "https://www.youtube.com/channel/UCvahkUIQv3F1eYh7BV0CmbQ?sub_confirmation=1", ""]
+        self.base_tags = ["foot", "match foot", "foot en direct", "Actu2Foot", "uefa", "match en direct", "direct",
+                          "football", "buts", "goals", "actu2foot", "actu foot", "score", "score direct", "match",
+                          "multiplex", "live", "score en direct", "stream", "communauté foot"]
 
         self.MatchCanvas = Canvas(self, width=1536, height=864)
         self.MatchCanvas.grid(row=0, column=0)
@@ -231,21 +234,25 @@ class MatchWindow(Toplevel):
         self.load_channel_stats()
         self.change_match_number(nb_matches, url_list, empty_text)
 
-    def update_videos(self, id_video, title, description, tags):
-        videos_list_response = self.youtube.videos().list(id=id_video, part="snippet").execute()
+    def update_videos(self):
 
-        if not videos_list_response["items"]:
-            print('Video "%s" was not found.' % id_video)
-            sys.exit(1)
+        print(self.videos_infos)
+
+        videos_list_response = self.youtube.videos().list(id=self.videos_infos["video_id"], part="snippet").execute()
 
         videos_list_snippet = videos_list_response["items"][0]["snippet"]
 
-        videos_list_snippet["title"] = title
-        videos_list_snippet["description"] = description
-        videos_list_snippet["tags"] = tags
+        videos_list_snippet["title"] = self.videos_infos["title"]
+        videos_list_snippet["description"] = "\n".join(self.videos_infos["description"])
+        videos_list_snippet["tags"] = list(set(self.videos_infos["tags"]))
 
         self.youtube.videos()\
-            .update(part="snippet", body=dict(snippet=videos_list_snippet, id=id_video)).execute()
+            .update(part="snippet", body=dict(snippet=videos_list_snippet, id=self.videos_infos["video_id"])).execute()
+
+    def update_video_infos(self, titre="", description=[], tags=[]):
+        self.videos_infos["title"] = titre
+        self.videos_infos["description"] = description
+        self.videos_infos["tags"] = tags
 
     def load_bases(self):
 
@@ -474,13 +481,22 @@ class MatchWindow(Toplevel):
                 self.load_match_stats()
             else:
                 if not empty_text:
-                    self.MatchCanvas.create_text(770, 480, width=800, text="C'est fini pour aujourd'hui. " +
-                                                 "Il n'y a plus de match prévus pour ce stream. " +
-                                                 "Bisous la team.", tag="Empty", font=["Ubuntu", 30])
-                    self.MatchCanvas.create_rectangle(350, 450, 1190, 510, fill="white", tag="Empty")
+                    self.MatchCanvas.create_rectangle(350, 400, 1190, 560, fill="white", tag="Empty", width=0)
+                    self.MatchCanvas.create_text(770, 480, width=800, text="C'est fini pour aujourd'hui.\n" +
+                                                 "Il n'y a plus de match prévus pour ce stream.\n" +
+                                                 "A plus la team!",
+                                                 justify="center", tag="Empty", font=["Ubuntu", 30])
+                    self.update_video_infos("Actu2Foot revient bientôt", self.base_description, self.base_tags)
+                    if self.videos_infos["video_id"]:
+                        self.update_videos()
                 else:
+                    self.MatchCanvas.create_rectangle(350, 450, 1190, 510, fill="white", tag="Empty", width=0)
                     self.MatchCanvas.create_text(770, 480, text="Prochain match prévu"+empty_text, tag="Empty",
                                                  font=["Ubuntu", 30])
+                    self.update_video_infos("[Score en direct] Prochain match prévu"+empty_text, self.base_description,
+                                            self.base_tags)
+                    if self.videos_infos["video_id"]:
+                        self.update_videos()
 
         elif self.match_urls != new_urls:
             for after_id in self.afters.values():
@@ -496,6 +512,7 @@ class MatchWindow(Toplevel):
         self.videos_infos["title"] = "[Score en direct]"
         dict_head_description = {}
         hashtag_description = []
+        list_tags = []
 
         for j in range(self.nb_matches):
             if j >= len(self.match_urls):
@@ -511,6 +528,9 @@ class MatchWindow(Toplevel):
             hashtag = "#" + championnat.lower().replace(" ", "").replace("-", "")
             if not (hashtag in hashtag_description):
                 hashtag_description.append(hashtag)
+            tag = championnat.lower()
+            if not (tag in list_tags):
+                list_tags.append(tag)
             i = 0
             for div in soup.find_all("div", class_="col-xs-4 text-center team"):
                 self.MatchCanvas.itemconfigure("TeamName"+str(2*j+i), text=div.text[1:-1].replace(" ", "\n"))
@@ -518,6 +538,8 @@ class MatchWindow(Toplevel):
                 match_head_description += div.text[1:-1]
                 hashtag = "#" + div.text[1:-1].lower().replace(" ", "").replace("-", "")
                 hashtag_description.append(hashtag)
+                tag = div.text[1:-1].lower()
+                list_tags.append(tag)
                 if i == 0:
                     match_title += "-"
                     match_head_description += " - "
@@ -531,7 +553,7 @@ class MatchWindow(Toplevel):
 
             if len(self.videos_infos["title"] + match_title) <= 100:
                 self.videos_infos["title"] += match_title
-            if self.videos_infos["title"][0:18] == "[Score en direct]" and \
+            elif self.videos_infos["title"][0:18] == "[Score en direct]" and \
                     len(self.videos_infos["title"][18:] + match_title) <= 100:
                 self.videos_infos["title"] = self.videos_infos["title"][18:] + match_title
 
@@ -554,10 +576,10 @@ class MatchWindow(Toplevel):
             head_description.append("")
 
         self.videos_infos["description"] = head_description + self.base_description + hashtag_description
-        print(self.videos_infos)
+        self.videos_infos["tags"] = self.base_tags + list_tags
+
         if self.videos_infos["video_id"]:
-            self.update_videos(self.videos_infos["video_id"], self.videos_infos["title"],
-                               "\n".join(self.videos_infos["description"]), list(set(self.videos_infos["tags"])))
+            self.update_videos()
 
     def reload_match_score(self):
         self.after_blocked["scores"] = True
@@ -626,10 +648,7 @@ class MatchWindow(Toplevel):
     def load_video_stats(self, video_link=""):
         self.videos_infos["video_id"] = video_link.split("?v=")[1].split("&ab")[0]
 
-        self.update_videos(self.videos_infos["video_id"], self.videos_infos["title"],
-                           "\n".join(self.videos_infos["description"]), list(set(self.videos_infos["tags"])))
-
-        print(self.videos_infos)
+        self.update_videos()
 
         stats = self.youtube.videos().list(id=self.videos_infos["video_id"], part="statistics").execute()
         video = stats["items"][0]["statistics"]
