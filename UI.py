@@ -229,6 +229,7 @@ class MatchWindow(Toplevel):
         self.displayed_black = None
         self.displayed_icons = []
         self.displayed_teamlogos = []
+        self.displayed_championnat = None
 
         self.load_gif()
         self.load_bases()
@@ -460,6 +461,7 @@ class MatchWindow(Toplevel):
         self.stop_gif = False
 
         self.MatchCanvas.delete("Empty")
+        self.MatchCanvas.delete("champ")
 
         if new_number != self.nb_matches:
             for after_id in self.afters.values():
@@ -518,6 +520,8 @@ class MatchWindow(Toplevel):
 
         self.displayed_teamlogos = []
         self.videos_infos["title"] = "[Score en direct]"
+        self.displayed_championnat = None
+        first_url_logo_champ = ""
         dict_head_description = {}
         hashtag_description = []
         list_tags = []
@@ -573,6 +577,20 @@ class MatchWindow(Toplevel):
                 self.MatchCanvas.itemconfigure("Teamlogo" + str(2*j+i), image=self.displayed_teamlogos[2*j+i])
                 i += 1
 
+            url_logo_champ = "https://www.matchendirect.fr" + \
+                             soup.find("div", class_="col-xs-4 text-center imgfootball").find("img")["src"]
+
+            if j == 0:
+                first_url_logo_champ = url_logo_champ
+                pil_image = PIL.Image.open(requests.get(url_logo_champ, stream=True).raw)
+                logo = PIL.ImageTk.PhotoImage(pil_image)
+                self.displayed_championnat = logo
+            else:
+                if first_url_logo_champ != url_logo_champ:
+                    self.displayed_championnat = None
+
+        self.display_championnat()
+
         if self.videos_infos["title"][-1] == "|":
             self.videos_infos["title"] = self.videos_infos["title"][:-1]
 
@@ -588,6 +606,10 @@ class MatchWindow(Toplevel):
 
         if self.videos_infos["video_id"]:
             self.update_videos()
+
+    def display_championnat(self):
+        if self.displayed_championnat:
+            self.MatchCanvas.create_image(770, 120, image=self.displayed_championnat, tag="champ")
 
     def reload_match_score(self):
         self.after_blocked["scores"] = True
