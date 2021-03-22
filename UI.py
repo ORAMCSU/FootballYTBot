@@ -249,13 +249,14 @@ class MatchWindow(Toplevel):
         self.youtube.videos()\
             .update(part="snippet", body=dict(snippet=videos_list_snippet, id=self.videos_infos["video_id"])).execute()
 
-    def update_video_infos(self, titre="", description=[], tags=[]):
+    def update_video_infos(self, titre="", description=None, tags=None):
         self.videos_infos["title"] = titre
-        self.videos_infos["description"] = description
-        self.videos_infos["tags"] = tags
+        if description:
+            self.videos_infos["description"] = description
+        if tags:
+            self.videos_infos["tags"] = tags
 
     def load_bases(self):
-
         pil_image = PIL.Image.open("./ressources/images/fond_direct.jpg")
         pil_image2 = pil_image.resize((1536, 864))
         pil_image.close()
