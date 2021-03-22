@@ -162,10 +162,11 @@ class ManagerWindow(Tk):
 
     def clean_list(self):
 
-        while self.csv_links[0][1] == -2:
-            self.csv_links.pop(0)
-            if not self.csv_links:
-                return
+        if self.csv_links:
+            while self.csv_links[0][1] == -2:
+                self.csv_links.pop(0)
+                if not self.csv_links:
+                    return
 
 
 class MatchWindow(Toplevel):
