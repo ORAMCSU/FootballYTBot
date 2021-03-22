@@ -150,7 +150,7 @@ class ManagerWindow(Tk):
                     start[1] = time_conv[start[1]]
                     cast_time = strptime(str(start), "['%d', %m, '%Y', '%Hh%M']")
                     cast_time = int(mktime(cast_time)//60)
-                    if cast_time < now:
+                    if cast_time-5 < now:
                         link[1] = -1
                     else:
                         link[1] = cast_time
@@ -321,7 +321,7 @@ class MatchWindow(Toplevel):
                                                                                                          str(2*j+i))
 
                 self.MatchCanvas.create_text(771, 448, justify="center", tag="timer" + str(j))
-                self.MatchCanvas.create_image(720, 448, image=self.gif[0], tag="gif")
+                self.MatchCanvas.create_image(720, 448, tag="gif"+str(j))
 
             elif self.nb_matches == 2:
                 for i in range(2):
@@ -344,7 +344,7 @@ class MatchWindow(Toplevel):
                                                   tag="Teamlogo" + str(2*j+i))
 
                 self.MatchCanvas.create_text(771, 307 + 270 * j, justify="center", tag="timer" + str(j))
-                self.MatchCanvas.create_image(725,  307 + 270 * j, image=self.gif[0], tag="gif")
+                self.MatchCanvas.create_image(725,  307 + 270 * j, tag="gif"+str(j))
 
             elif self.nb_matches == 3:
                 for i in range(2):
@@ -375,7 +375,7 @@ class MatchWindow(Toplevel):
                 self.MatchCanvas.create_text(771 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
                                              justify="center", tag="timer" + str(j))
                 self.MatchCanvas.create_image(730 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
-                                              image=self.gif[0], tag="gif")
+                                              tag="gif"+str(j))
 
             elif self.nb_matches == 4:
                 for i in range(2):
@@ -407,7 +407,7 @@ class MatchWindow(Toplevel):
                 self.MatchCanvas.create_text(771 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
                                              justify="center", tag="timer" + str(j))
                 self.MatchCanvas.create_image(730 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
-                                              image=self.gif[0], tag="gif")
+                                              tag="gif"+str(j))
         self.load_match_teams()
         self.reload_match_score()
         self.reload_match_commentaries()
@@ -440,6 +440,7 @@ class MatchWindow(Toplevel):
                 self.MatchCanvas.delete("commentaire" + str(j))
                 self.MatchCanvas.delete("timer" + str(j))
                 self.MatchCanvas.delete("Black" + str(j))
+                self.MatchCanvas.delete("gif"+str(j))
                 for i in range(2):
                     self.MatchCanvas.delete("Teamlogo"+str(2*j+i))
                     self.MatchCanvas.delete("TeamName"+str(2*j+i))
@@ -452,9 +453,10 @@ class MatchWindow(Toplevel):
                 self.load_match_stats()
             else:
                 if not empty_text:
-                    self.MatchCanvas.create_text(770, 480, text="C'est fini pour aujourd'hui. " +
-                                                                "Il n'y a plus de match prévus. Bisous la team.",
-                                                 tag="Empty", font=["Ubuntu", 30])
+                    self.MatchCanvas.create_text(770, 480, width=800, text="C'est fini pour aujourd'hui. " +
+                                                 "Il n'y a plus de match prévus pour ce stream. " +
+                                                 "Bisous la team.", tag="Empty", font=["Ubuntu", 30])
+                    self.MatchCanvas.create_rectangle(350, 450, 1190, 510, fill="white", tag="Empty")
                 else:
                     self.MatchCanvas.create_text(770, 480, text="Prochain match prévu"+empty_text, tag="Empty",
                                                  font=["Ubuntu", 30])
@@ -464,6 +466,8 @@ class MatchWindow(Toplevel):
                 if after_id:
                     self.after_cancel(after_id)
             self.change_matches(new_urls)
+
+        self.play_gif(0)
 
     def load_match_teams(self):
 
@@ -481,7 +485,7 @@ class MatchWindow(Toplevel):
             match_page = requests.get(self.match_urls[j])
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
             championnat = soup.find("div", class_="info1").text.split("|")[1][1:-1]
-            if not championnat in dict_head_description:
+            if championnat not in dict_head_description:
                 dict_head_description[championnat] = [""]
             hashtag = "#" + championnat.lower().replace(" ", "").replace("-", "")
             if not (hashtag in hashtag_description):
@@ -634,11 +638,16 @@ class MatchWindow(Toplevel):
 
     def play_gif(self, i=1):
         self.after_blocked["gif"] = True
-        self.MatchCanvas.itemconfigure("gif", image=self.gif[i])
-        i += 1
-        i %= 55
+        for j in range(self.nb_matches):
+            timer_text = self.MatchCanvas.itemcget("timer"+str(j), "text")
+            if timer_text[-1] == "'":
+                self.MatchCanvas.itemconfigure("gif"+str(j), image=self.gif[i])
+            elif timer_text == "Match terminé":
+                self.MatchCanvas.delete("gif" + str(j))
 
         if not self.stop_gif:
+            i += 1
+            i %= 55
             self.afters["gif"] = self.after(2000//55, self.play_gif, i)
         else:
             self.afters["gif"] = None
@@ -707,7 +716,7 @@ class SetupFrame(Frame):
             for i in self.url_entries:
                 if i.get() and i.get()[:40] == "https://www.matchendirect.fr/live-score/" and \
                         i.get()[-5:] == ".html":
-                    if bs4.BeautifulSoup(requests.get(i.get()), "html.parser").find("title").text != "Erreur 404":
+                    if bs4.BeautifulSoup(requests.get(i.get()).text, "html.parser").find("title").text != "Erreur 404":
                         url_list.append(i.get())
                     else:
                         showerror("Erreur 404", f"Le match que vous cherchez, {i.get()}, " +
