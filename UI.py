@@ -654,7 +654,17 @@ class MatchWindow(Toplevel):
         self.after(65000, self.reload_channel_stats)
 
     def load_video_stats(self, video_link=""):
-        self.videos_infos["video_id"] = video_link.split("?v=")[1].split("&ab")[0]
+        if video_link[:32] == "https://www.youtube.com/watch?v=":
+            video_id = video_link.split("?v=")[1].split("&ab")[0]
+        else:
+            video_id = video_link.split(".be/")[1]
+        infos = self.youtube.videos().list(id=video_id, part="snippet").execute()
+        if infos['pageInfo']['totalResults'] != 0 and infos['snippet']['liveBroadcastContent'] == 'live':
+            self.videos_infos["video_id"] = video_id
+        else:
+            showerror("Mauvaise URL de stream", "L'url que vous avez rentrée : \n" + video_link +
+                      "\nne correspond pas à un live youtube.")
+            return
 
         self.update_videos()
 
