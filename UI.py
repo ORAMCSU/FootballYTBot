@@ -29,7 +29,8 @@ class ManagerWindow(Tk):
 
         self.csv_links = []
         self.current_csv = 0
-        self.csv_after = None
+        self.afters = {"rotate": None, "free": None}
+        self.after_blocked = {"rotate": False, "free": False}
 
         self.MatchWindow = None
 
@@ -61,6 +62,16 @@ class ManagerWindow(Tk):
         self.MatchWindow = None
 
     def load_from_csv(self):
+
+        for block in self.after_blocked.values():
+            if block:
+                self.after(500, self.load_from_csv)
+                return
+
+        for after in self.afters.values():
+            if after:
+                self.after_cancel(after)
+
         self.csv_links = []
         with open("./ressources/schedule.csv", "r", encoding="utf8") as file:
             url = file.readline().strip("\n").split(",")[0].strip("\ufeff")
@@ -99,12 +110,20 @@ class ManagerWindow(Tk):
             if self.csv_links[self.current_csv][1]-now-5 < 0:
                 self.rotate_matches()
             else:
-                self.after((self.csv_links[self.current_csv][1]-now-5)*60000, self.rotate_matches)
+                if not self.afters["rotate"]:
+                    self.afters["rotate"] = self.after((self.csv_links[self.current_csv][1]-now-5)*60000,
+                                                       self.rotate_matches)
+                if self.csv_links[self.current_csv][1]-now > 10:
+                    self.afters["free"] = self.after(300000, self.free_matches)
         else:
-            self.after(300000, self.free_matches)
+            self.afters["free"] = self.after(300000, self.free_matches)
+
+        self.after_blocked["rotate"] = False
+        self.after_blocked["free"] = False
 
     def rotate_matches(self):
-
+        self.after_blocked["rotate"] = True
+        self.afters["rotate"] = None
         self.csv_links[self.current_csv][1] = -1
         self.check_finished()
         self.csv_links.sort(key=lambda i: i[1])
@@ -112,6 +131,8 @@ class ManagerWindow(Tk):
         self.csv_match()
 
     def free_matches(self):
+        self.after_blocked["free"] = True
+        self.afters["free"] = None
         old_list = self.csv_links.copy()
         self.check_finished()
         self.csv_links.sort(key=lambda i: i[1])
@@ -119,7 +140,7 @@ class ManagerWindow(Tk):
         if self.csv_links != old_list:
             self.csv_match()
         else:
-            self.after(300000, self.free_matches)
+            self.waiter()  # self.after(300000, self.free_matches)
 
     def check_finished(self):
 
@@ -467,7 +488,7 @@ class MatchWindow(Toplevel):
                     self.after_cancel(after_id)
             self.change_matches(new_urls)
 
-        self.play_gif(0)
+        # self.play_gif(0)
 
     def load_match_teams(self):
 
