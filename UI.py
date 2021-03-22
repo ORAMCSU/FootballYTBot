@@ -56,7 +56,7 @@ class ManagerWindow(Tk):
         self.MatchWindow.playback(filename)
 
     def is_stream_on(self):
-        return not(self.MatchWindow is None)
+        return not (self.MatchWindow is None)
 
     def erase(self):
         self.MatchWindow = None
@@ -107,23 +107,23 @@ class ManagerWindow(Tk):
             cast_time = localtime(self.csv_links[0][1] * 60)
             now = localtime()
             if now.tm_mday != cast_time.tm_mday or now.tm_mon != cast_time.tm_mon or now.tm_year != cast_time.tm_year:
-                message = " le "+str(cast_time.tm_mday)+"/"+"{0:0=2d}".format(cast_time.tm_mon)
-            message += " à "+str(cast_time.tm_hour)+"h"+"{0:0=2d}".format(cast_time.tm_min) + "."
+                message = " le " + str(cast_time.tm_mday) + "/" + "{0:0=2d}".format(cast_time.tm_mon)
+            message += " à " + str(cast_time.tm_hour) + "h" + "{0:0=2d}".format(cast_time.tm_min) + "."
 
         self.launch_match(i, url_list, message)
         self.waiter()
 
     def waiter(self):
 
-        now = int(time()//60)
+        now = int(time() // 60)
         if self.current_csv < len(self.csv_links) and self.current_csv < 4:
-            if self.csv_links[self.current_csv][1]-now-5 < 0:
+            if self.csv_links[self.current_csv][1] - now - 5 < 0:
                 self.rotate_matches()
             else:
                 if not self.afters["rotate"]:
-                    self.afters["rotate"] = self.after((self.csv_links[self.current_csv][1]-now-5)*60000,
+                    self.afters["rotate"] = self.after((self.csv_links[self.current_csv][1] - now - 5) * 60000,
                                                        self.rotate_matches)
-                if self.csv_links[self.current_csv][1]-now > 10:
+                if self.csv_links[self.current_csv][1] - now > 10:
                     self.afters["free"] = self.after(300000, self.free_matches)
         else:
             self.afters["free"] = self.after(300000, self.free_matches)
@@ -166,7 +166,7 @@ class ManagerWindow(Tk):
 
         time_conv = {"janvier": 1, "février": 2, "mars": 3, "avril": 4, "mai": 5, "juin": 6,
                      "juillet": 7, "août": 8, "septembre": 9, "octobre": 10, "novembre": 11, "décembre": 12}
-        now = int(time()//60)
+        now = int(time() // 60)
 
         for link in self.csv_links:
             match_page = requests.get(link[0])
@@ -177,8 +177,8 @@ class ManagerWindow(Tk):
                 start = start.split(" ")[1:4] + [start.split(" ")[-2]]
                 start[1] = time_conv[start[1]]
                 cast_time = strptime(str(start), "['%d', %m, '%Y', '%Hh%M']")
-                cast_time = int(mktime(cast_time)//60)
-                if cast_time-5 < now:
+                cast_time = int(mktime(cast_time) // 60)
+                if cast_time - 5 < now:
                     link[1] = -1
                 else:
                     link[1] = cast_time
@@ -248,7 +248,7 @@ class MatchWindow(Toplevel):
         videos_list_snippet["description"] = "\n".join(self.videos_infos["description"])
         videos_list_snippet["tags"] = list(set(self.videos_infos["tags"]))
 
-        self.youtube.videos()\
+        self.youtube.videos() \
             .update(part="snippet", body=dict(snippet=videos_list_snippet, id=self.videos_infos["video_id"])).execute()
 
     def update_video_infos(self, titre="", description=None, tags=None):
@@ -280,10 +280,10 @@ class MatchWindow(Toplevel):
 
         iconlist = ["./ressources/images/youtube.png", "./ressources/images/views.png", "./ressources/images/likes.png"]
         for i in range(3):
-            self.MatchCanvas.create_rectangle(1306, 20+70*i, 1486, 70+70*i, fill="white", outline="white")
+            self.MatchCanvas.create_rectangle(1306, 20 + 70 * i, 1486, 70 + 70 * i, fill="white", outline="white")
             pil_image2.close()
             pil_image = PIL.Image.open(iconlist[i])
-            pil_image2 = pil_image.resize((int((pil_image.size[0]/pil_image.size[1])*40), 40))
+            pil_image2 = pil_image.resize((int((pil_image.size[0] / pil_image.size[1]) * 40), 40))
             pil_image.close()
 
             self.displayed_icons.append(PIL.ImageTk.PhotoImage(pil_image2))
@@ -336,12 +336,12 @@ class MatchWindow(Toplevel):
 
             if self.nb_matches == 1:
                 for i in range(2):
-                    self.MatchCanvas.create_text(195*(1-i) + (1-2*i)*300 + 1347*i, 500, font=["Ubuntu", 30],
-                                                 fill="white", justify="center", tag="TeamName"+str(i))
+                    self.MatchCanvas.create_text(195 * (1 - i) + (1 - 2 * i) * 300 + 1347 * i, 500, font=["Ubuntu", 30],
+                                                 fill="white", justify="center", tag="TeamName" + str(i))
 
                 for i in range(2):
                     self.MatchCanvas.create_text(195 * (1 - i) + (1 - 2 * i) * 493 + 1347 * i, 535, font=["Ubuntu", 40],
-                                                 fill="white", justify="center", tag="score"+str(i))
+                                                 fill="white", justify="center", tag="score" + str(i))
 
                 self.MatchCanvas.create_rectangle(221, 625, 1321, 720, tag="bg" + str(j), width=0)
                 self.MatchCanvas.create_text(771, 672, font=["Arial", 12],
@@ -349,81 +349,83 @@ class MatchWindow(Toplevel):
 
                 for i in range(2):
                     self.MatchCanvas.create_image(195 * (1 - i) + (1 - 2 * i) * 100 + 1347 * i, 500, tag="Teamlogo" +
-                                                                                                         str(2*j+i))
+                                                                                                         str(2 * j + i))
 
                 self.MatchCanvas.create_text(771, 448, justify="center", tag="timer" + str(j))
-                self.MatchCanvas.create_image(720, 448, tag="gif"+str(j))
+                self.MatchCanvas.create_image(720, 448, tag="gif" + str(j))
 
             elif self.nb_matches == 2:
                 for i in range(2):
-                    self.MatchCanvas.create_text(333 * (1 - i) + (1 - 2 * i) * 220 + 1217 * i, 270*j+350,
+                    self.MatchCanvas.create_text(333 * (1 - i) + (1 - 2 * i) * 220 + 1217 * i, 270 * j + 350,
                                                  font=["Ubuntu", 22],
-                                                 fill="white", justify="center", tag="TeamName" + str(2*j+i))
+                                                 fill="white", justify="center", tag="TeamName" + str(2 * j + i))
 
                 for i in range(2):
-                    self.MatchCanvas.create_text(325 * (1 - i) + (1 - 2 * i) * 383 + 1217 * i, 270*j+380,
+                    self.MatchCanvas.create_text(325 * (1 - i) + (1 - 2 * i) * 383 + 1217 * i, 270 * j + 380,
                                                  font=["Ubuntu", 40],
-                                                 fill="white", justify="center", tag="score" + str(2*j+i))
+                                                 fill="white", justify="center", tag="score" + str(2 * j + i))
 
-                self.MatchCanvas.create_rectangle(360, 450 + 270 * j, 1180, 511 + 270 * j, width=0, tag="bg"+str(j))
+                self.MatchCanvas.create_rectangle(360, 450 + 270 * j, 1180, 511 + 270 * j, width=0, tag="bg" + str(j))
                 self.MatchCanvas.create_text(771, 483 + 270 * j,
                                              text="", font=["Arial", 10],
                                              fill="black", tag="commentaire" + str(j), width=800)
 
                 for i in range(2):
-                    self.MatchCanvas.create_image(333 * (1 - i) + (1 - 2 * i) * 80 + 1207 * i, 270*j+350,
-                                                  tag="Teamlogo" + str(2*j+i))
+                    self.MatchCanvas.create_image(333 * (1 - i) + (1 - 2 * i) * 80 + 1207 * i, 270 * j + 350,
+                                                  tag="Teamlogo" + str(2 * j + i))
 
                 self.MatchCanvas.create_text(771, 307 + 270 * j, justify="center", tag="timer" + str(j))
-                self.MatchCanvas.create_image(725,  307 + 270 * j, tag="gif"+str(j))
+                self.MatchCanvas.create_image(725, 307 + 270 * j, tag="gif" + str(j))
 
             elif self.nb_matches == 3:
                 for i in range(2):
-                    self.MatchCanvas.create_text((420-375*(j == 1)+375*(j == 2)) * (1 - i) + (1 - 2 * i) * 190 +
-                                                 (1120-375*(j == 1)+375*(j == 2)) * i, 215*(j >= 1)+350,
+                    self.MatchCanvas.create_text((420 - 375 * (j == 1) + 375 * (j == 2)) * (1 - i) + (1 - 2 * i) * 190 +
+                                                 (1120 - 375 * (j == 1) + 375 * (j == 2)) * i, 215 * (j >= 1) + 350,
                                                  font=["Ubuntu", 20],
-                                                 fill="white", justify="center", tag="TeamName" + str(2*j+i))
+                                                 fill="white", justify="center", tag="TeamName" + str(2 * j + i))
 
                 for i in range(2):
-                    self.MatchCanvas.create_text((420-375*(j == 1)+375*(j == 2)) * (1 - i) + (1 - 2 * i) * 300 +
-                                                 (1122-375*(j == 1)+375*(j == 2)) * i, 215*(j >= 1)+372,
+                    self.MatchCanvas.create_text((420 - 375 * (j == 1) + 375 * (j == 2)) * (1 - i) + (1 - 2 * i) * 300 +
+                                                 (1122 - 375 * (j == 1) + 375 * (j == 2)) * i, 215 * (j >= 1) + 372,
                                                  font=["Ubuntu", 35],
-                                                 fill="white", justify="center", tag="score" + str(2*j+i))
+                                                 fill="white", justify="center", tag="score" + str(2 * j + i))
 
                 self.MatchCanvas.create_rectangle(50 + 375 * (j == 0) + 750 * (j == 2), 432 + 215 * (j >= 1),
                                                   740 + 375 * (j == 0) + 750 * (j == 2), 479 + 215 * (j >= 1),
-                                                  width=0, tag="bg"+str(j))
+                                                  width=0, tag="bg" + str(j))
 
                 self.MatchCanvas.create_text((770 - 375 * (j == 1) + 375 * (j == 2)), 215 * (j >= 1) + 455,
                                              text="", font=["Arial", 8],
                                              fill="black", tag="commentaire" + str(j), width=680)
 
                 for i in range(2):
-                    self.MatchCanvas.create_image((420-375*(j == 1)+375*(j == 2)) * (1 - i) + (1 - 2 * i) * 70 +
-                                                  (1120-375*(j == 1)+375*(j == 2)) * i, 215*(j >= 1)+350,
-                                                  tag="Teamlogo" + str(2*j+i))
+                    self.MatchCanvas.create_image((420 - 375 * (j == 1) + 375 * (j == 2)) * (1 - i) + (1 - 2 * i) * 70 +
+                                                  (1120 - 375 * (j == 1) + 375 * (j == 2)) * i, 215 * (j >= 1) + 350,
+                                                  tag="Teamlogo" + str(2 * j + i))
 
                 self.MatchCanvas.create_text(771 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
                                              justify="center", tag="timer" + str(j))
                 self.MatchCanvas.create_image(730 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
-                                              tag="gif"+str(j))
+                                              tag="gif" + str(j))
 
             elif self.nb_matches == 4:
                 for i in range(2):
-                    self.MatchCanvas.create_text((420-375*(j % 2 == 0)+375*(j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
-                                                 190 + (1120-375*(j % 2 == 0)+375*(j % 2 == 1)) * i, 215*(j >= 2)+350,
-                                                 font=["Ubuntu", 20],
-                                                 fill="white", justify="center", tag="TeamName" + str(2*j+i))
+                    self.MatchCanvas.create_text(
+                        (420 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
+                        190 + (1120 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i, 215 * (j >= 2) + 350,
+                        font=["Ubuntu", 20],
+                        fill="white", justify="center", tag="TeamName" + str(2 * j + i))
 
                 for i in range(2):
-                    self.MatchCanvas.create_text((420-375*(j % 2 == 0)+375*(j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
-                                                 300 + (1122-375*(j % 2 == 0)+375*(j % 2 == 1)) * i, 215*(j >= 2)+372,
-                                                 font=["Ubuntu", 35],
-                                                 fill="white", justify="center", tag="score" + str(2*j+i))
+                    self.MatchCanvas.create_text(
+                        (420 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
+                        300 + (1122 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i, 215 * (j >= 2) + 372,
+                        font=["Ubuntu", 35],
+                        fill="white", justify="center", tag="score" + str(2 * j + i))
 
                 self.MatchCanvas.create_rectangle(50 + 750 * (j % 2 == 1), 432 + 215 * (j >= 2),
                                                   740 + 750 * (j % 2 == 1), 479 + 215 * (j >= 2),
-                                                  width=0, tag="bg"+str(j))
+                                                  width=0, tag="bg" + str(j))
 
                 self.MatchCanvas.create_text((770 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)),
                                              215 * (j >= 2) + 455,
@@ -431,14 +433,15 @@ class MatchWindow(Toplevel):
                                              fill="black", tag="commentaire" + str(j), width=680)
 
                 for i in range(2):
-                    self.MatchCanvas.create_image((420-375*(j % 2 == 0)+375*(j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
-                                                  70 + (1120-375*(j % 2 == 0)+375*(j % 2 == 1)) * i, 215*(j >= 2)+350,
-                                                  tag="Teamlogo" + str(2*j+i))
+                    self.MatchCanvas.create_image(
+                        (420 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
+                        70 + (1120 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i, 215 * (j >= 2) + 350,
+                        tag="Teamlogo" + str(2 * j + i))
 
                 self.MatchCanvas.create_text(771 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
                                              justify="center", tag="timer" + str(j))
                 self.MatchCanvas.create_image(730 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
-                                              tag="gif"+str(j))
+                                              tag="gif" + str(j))
         self.load_match_teams()
         self.reload_match_score()
         self.reload_match_commentaries()
@@ -472,11 +475,11 @@ class MatchWindow(Toplevel):
                 self.MatchCanvas.delete("commentaire" + str(j))
                 self.MatchCanvas.delete("timer" + str(j))
                 self.MatchCanvas.delete("Black" + str(j))
-                self.MatchCanvas.delete("gif"+str(j))
+                self.MatchCanvas.delete("gif" + str(j))
                 for i in range(2):
-                    self.MatchCanvas.delete("Teamlogo"+str(2*j+i))
-                    self.MatchCanvas.delete("TeamName"+str(2*j+i))
-                    self.MatchCanvas.delete("score"+str(2*j+i))
+                    self.MatchCanvas.delete("Teamlogo" + str(2 * j + i))
+                    self.MatchCanvas.delete("TeamName" + str(2 * j + i))
+                    self.MatchCanvas.delete("score" + str(2 * j + i))
 
             self.nb_matches = new_number
             self.match_urls = new_urls
@@ -545,7 +548,7 @@ class MatchWindow(Toplevel):
                 list_tags.append(tag)
             i = 0
             for div in soup.find_all("div", class_="col-xs-4 text-center team"):
-                self.MatchCanvas.itemconfigure("TeamName"+str(2*j+i), text=div.text[1:-1].replace(" ", "\n"))
+                self.MatchCanvas.itemconfigure("TeamName" + str(2 * j + i), text=div.text[1:-1].replace(" ", "\n"))
                 match_title += div.text[1:-1]
                 match_head_description += div.text[1:-1]
                 hashtag = "#" + div.text[1:-1].lower().replace(" ", "").replace("-", "")
@@ -560,7 +563,7 @@ class MatchWindow(Toplevel):
             match_head_description += " | [Score en direct]"
             dict_head_description[championnat].append(match_head_description)
 
-            if j != (self.nb_matches-1):
+            if j != (self.nb_matches - 1):
                 match_title += " |"
 
             if len(self.videos_infos["title"] + match_title) <= 100:
@@ -574,7 +577,7 @@ class MatchWindow(Toplevel):
                 full_url = "https://www.matchendirect.fr" + div.find("img")["src"].replace("/96/", "/128/")
                 pil_image = PIL.Image.open(requests.get(full_url, stream=True).raw)
                 self.displayed_teamlogos.append(PIL.ImageTk.PhotoImage(pil_image))
-                self.MatchCanvas.itemconfigure("Teamlogo" + str(2*j+i), image=self.displayed_teamlogos[2*j+i])
+                self.MatchCanvas.itemconfigure("Teamlogo" + str(2 * j + i), image=self.displayed_teamlogos[2 * j + i])
                 i += 1
 
             url_logo_champ = "https://www.matchendirect.fr" + \
@@ -618,7 +621,7 @@ class MatchWindow(Toplevel):
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
             i = 0
             for score in soup.find_all(class_="score"):
-                self.MatchCanvas.itemconfigure("score"+str(2*j+i), text=score.text)
+                self.MatchCanvas.itemconfigure("score" + str(2 * j + i), text=score.text)
                 i += 1
         print("Scores mis à jour")
         self.afters["scores"] = self.after(10000, self.reload_match_score)
@@ -649,17 +652,22 @@ class MatchWindow(Toplevel):
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
             minute_text = soup.find(class_="status").text
             if minute_text.split(" ")[0] == "Coup":
-                self.MatchCanvas.itemconfigure("timer"+str(j), text="Coup\nd'envoi",
-                                               font=["Ubuntu", 7 + 3*(self.nb_matches <= 2) + 2*(self.nb_matches == 1)])
+                self.MatchCanvas.itemconfigure("timer" + str(j), text="Coup\nd'envoi",
+                                               font=["Ubuntu",
+                                                     7 + 3 * (self.nb_matches <= 2) + 2 * (self.nb_matches == 1)])
             elif minute_text == " Mi-temps":
-                self.MatchCanvas.itemconfigure("timer"+str(j), text=minute_text.strip(" ").replace("-", "-\n"),
-                                               font=["Ubuntu", 7 + 3*(self.nb_matches <= 2) + 2*(self.nb_matches == 1)])
+                self.MatchCanvas.itemconfigure("timer" + str(j), text=minute_text.strip(" ").replace("-", "-\n"),
+                                               font=["Ubuntu",
+                                                     7 + 3 * (self.nb_matches <= 2) + 2 * (self.nb_matches == 1)])
             elif minute_text == "Match terminé":
                 self.MatchCanvas.itemconfigure("timer" + str(j), text=minute_text.replace(" ", "\n"),
-                                               font=["Ubuntu", 7 + 3*(self.nb_matches <= 2) + 2*(self.nb_matches == 1)])
+                                               font=["Ubuntu",
+                                                     7 + 3 * (self.nb_matches <= 2) + 2 * (self.nb_matches == 1)])
             else:
                 self.MatchCanvas.itemconfigure("timer" + str(j), text=minute_text.strip(" "), font=["Ubuntu", 20 +
-                                               5*(self.nb_matches <= 2) + 10*(self.nb_matches == 1)])
+                                                                                                    5 * (
+                                                                                                                self.nb_matches <= 2) + 10 * (
+                                                                                                                self.nb_matches == 1)])
 
         print("Timer mis à jour")
         self.afters["timer"] = self.after(60000, self.reload_match_timer)
@@ -704,31 +712,31 @@ class MatchWindow(Toplevel):
         stats = self.youtube.videos().list(id=self.videos_infos["video_id"], part="statistics").execute()
         video = stats["items"][0]["statistics"]
         self.MatchCanvas.itemconfigure("Views", text=str(video["viewCount"]))
-        self.MatchCanvas.itemconfigure("Likes", text=str(int(video["likeCount"])+1))
+        self.MatchCanvas.itemconfigure("Likes", text=str(int(video["likeCount"]) + 1))
 
         self.after(60000, self.reload_video_stats)
         print("Stats mises à jour")
 
     def move(self, tag, direction: tuple):
-        if direction[0]*direction[1] == 0:
-            self.MatchCanvas.move(tag, 10*direction[0], 10*direction[1])
+        if direction[0] * direction[1] == 0:
+            self.MatchCanvas.move(tag, 10 * direction[0], 10 * direction[1])
         else:
             current = self.MatchCanvas.itemcget(tag, "font").split(" ")
-            self.MatchCanvas.itemconfigure(tag, font=[current[0], int(current[1])+direction[0]])
+            self.MatchCanvas.itemconfigure(tag, font=[current[0], int(current[1]) + direction[0]])
 
     def play_gif(self, i=1):
         self.after_blocked["gif"] = True
         for j in range(self.nb_matches):
-            timer_text = self.MatchCanvas.itemcget("timer"+str(j), "text")
+            timer_text = self.MatchCanvas.itemcget("timer" + str(j), "text")
             if timer_text[-1] == "'":
-                self.MatchCanvas.itemconfigure("gif"+str(j), image=self.gif[i])
+                self.MatchCanvas.itemconfigure("gif" + str(j), image=self.gif[i])
             elif timer_text == "Match terminé":
                 self.MatchCanvas.delete("gif" + str(j))
 
         if not self.stop_gif:
             i += 1
             i %= 55
-            self.afters["gif"] = self.after(2000//55, self.play_gif, i)
+            self.afters["gif"] = self.after(2000 // 55, self.play_gif, i)
         else:
             self.afters["gif"] = None
         self.after_blocked["gif"] = False
@@ -777,17 +785,17 @@ class SetupFrame(Frame):
         if self.old_number != number:
             self.MatchButton.grid_forget()
             if number > self.old_number:
-                for i in range(number-self.old_number):
+                for i in range(number - self.old_number):
                     self.url_entries.append(Entry(self, width=70, bg='#6b6b6b', fg='white'))
-                    self.url_entries[self.old_number+i].grid(row=self.old_number+1+i, column=1, padx=10, pady=10)
+                    self.url_entries[self.old_number + i].grid(row=self.old_number + 1 + i, column=1, padx=10, pady=10)
             else:
-                for i in range(self.old_number-number):
-                    self.url_entries[number+i].destroy()
+                for i in range(self.old_number - number):
+                    self.url_entries[number + i].destroy()
                 self.url_entries = self.url_entries[:number]
 
             self.old_number = number
 
-            self.MatchButton.grid(row=self.old_number+1, column=1)
+            self.MatchButton.grid(row=self.old_number + 1, column=1)
 
     def launch_match(self, _event=None):
 
@@ -838,8 +846,12 @@ class EditFrame(Frame):
     def load_video(self):
 
         if self.master.is_stream_on():
-            if self.VideoEntry.get():
+            if self.VideoEntry.get() and (self.VideoEntry.get()[:32] == "https://www.youtube.com/watch?v=" or
+                                          self.VideoEntry.get()[:21] == "https://www.youtu.be/"):
                 self.master.load_video(self.VideoEntry.get())
+            else:
+                showerror("Mauvaise URL de vidéo.", f"L'url renseignée \"{self.VideoEntry.get()}\" " +
+                          "n'est pas un lien youtube valable.")
 
     def move(self, tag, direction):
 
@@ -867,52 +879,52 @@ class EditFrame(Frame):
 
         for i in range(self.nb_matches):
             Label(self.SubFrame, text="Match " + str(i + 1),
-                  bg='#4E4E4E', fg='white').grid(row=3*i+1, column=1, rowspan=2, padx=10, pady=10)
-            Separator(self.SubFrame, orient="vertical").grid(row=3*i+1, column=2, rowspan=2,
+                  bg='#4E4E4E', fg='white').grid(row=3 * i + 1, column=1, rowspan=2, padx=10, pady=10)
+            Separator(self.SubFrame, orient="vertical").grid(row=3 * i + 1, column=2, rowspan=2,
                                                              sticky="ns", padx=10, pady=4)
             Label(self.SubFrame, text="Timer :",
-                  bg='#4E4E4E', fg='white').grid(row=3*i+1, column=3, rowspan=2, padx=10, pady=10)
+                  bg='#4E4E4E', fg='white').grid(row=3 * i + 1, column=3, rowspan=2, padx=10, pady=10)
             Button(self.SubFrame, text="\U000025C0", fg='white',
-                   command=partial(self.move, "timer"+str(i), (-1, 0)),
-                   bg='#4E4E4E').grid(row=3*i+1, column=4, rowspan=2, padx=5, pady=10, sticky='e')
+                   command=partial(self.move, "timer" + str(i), (-1, 0)),
+                   bg='#4E4E4E').grid(row=3 * i + 1, column=4, rowspan=2, padx=5, pady=10, sticky='e')
             Button(self.SubFrame, text="\U000025B6", fg='white',
-                   command=partial(self.move, "timer"+str(i), (1, 0)),
-                   bg='#4E4E4E').grid(row=3*i+1, column=6, rowspan=2, padx=5, pady=10, sticky='w')
+                   command=partial(self.move, "timer" + str(i), (1, 0)),
+                   bg='#4E4E4E').grid(row=3 * i + 1, column=6, rowspan=2, padx=5, pady=10, sticky='w')
             Button(self.SubFrame, text="\U000025B2", fg='white',
-                   command=partial(self.move, "timer"+str(i), (0, -1)),
-                   bg='#4E4E4E').grid(row=3*i+1, column=5, padx=5, pady=10)
+                   command=partial(self.move, "timer" + str(i), (0, -1)),
+                   bg='#4E4E4E').grid(row=3 * i + 1, column=5, padx=5, pady=10)
             Button(self.SubFrame, text="\U000025BC", fg='white',
-                   command=partial(self.move, "timer"+str(i), (0, 1)),
-                   bg='#4E4E4E').grid(row=3*i+2, column=5, padx=5, pady=10)
+                   command=partial(self.move, "timer" + str(i), (0, 1)),
+                   bg='#4E4E4E').grid(row=3 * i + 2, column=5, padx=5, pady=10)
             Button(self.SubFrame, text="\U000025B2", fg='white',
                    command=partial(self.move, "timer" + str(i), (1, 1)),
-                   bg='#4E4E4E').grid(row=3*i+1, column=7, padx=10, pady=10)
+                   bg='#4E4E4E').grid(row=3 * i + 1, column=7, padx=10, pady=10)
             Button(self.SubFrame, text="\U000025BC", fg='white',
                    command=partial(self.move, "timer" + str(i), (-1, -1)),
-                   bg='#4E4E4E').grid(row=3*i+2, column=7, padx=10, pady=10)
-            Separator(self.SubFrame, orient="horizontal").grid(row=3*i+3, column=0, columnspan=20,
+                   bg='#4E4E4E').grid(row=3 * i + 2, column=7, padx=10, pady=10)
+            Separator(self.SubFrame, orient="horizontal").grid(row=3 * i + 3, column=0, columnspan=20,
                                                                sticky="we", pady=4)
 
             for j in range(2):
-                Separator(self.SubFrame, orient="vertical").grid(row=3*i+1, column=6*(j+1)+2, rowspan=2,
+                Separator(self.SubFrame, orient="vertical").grid(row=3 * i + 1, column=6 * (j + 1) + 2, rowspan=2,
                                                                  sticky="ns", padx=10, pady=4)
-                Label(self.SubFrame, text="Equipe "+str(j+1)+" :",
-                      bg='#4E4E4E', fg='white').grid(row=3*i+1, column=6*(j+1)+3, rowspan=2, padx=10, pady=10)
+                Label(self.SubFrame, text="Equipe " + str(j + 1) + " :",
+                      bg='#4E4E4E', fg='white').grid(row=3 * i + 1, column=6 * (j + 1) + 3, rowspan=2, padx=10, pady=10)
                 Button(self.SubFrame, text="\U000025C0", fg='white',
-                       command=partial(self.move, "TeamName" + str(2*i+j), (-1, 0)),
-                       bg='#4E4E4E').grid(row=3*i+1, column=6*(j+1)+4, rowspan=2, padx=5, pady=10)
+                       command=partial(self.move, "TeamName" + str(2 * i + j), (-1, 0)),
+                       bg='#4E4E4E').grid(row=3 * i + 1, column=6 * (j + 1) + 4, rowspan=2, padx=5, pady=10)
                 Button(self.SubFrame, text="\U000025B6", fg='white',
-                       command=partial(self.move, "TeamName" + str(2*i+j), (1, 0)),
-                       bg='#4E4E4E').grid(row=3*i+1, column=6*(j+2), rowspan=2, padx=5, pady=10)
+                       command=partial(self.move, "TeamName" + str(2 * i + j), (1, 0)),
+                       bg='#4E4E4E').grid(row=3 * i + 1, column=6 * (j + 2), rowspan=2, padx=5, pady=10)
                 Button(self.SubFrame, text="\U000025B2", fg='white',
-                       command=partial(self.move, "TeamName" + str(2*i+j), (0, -1)),
-                       bg='#4E4E4E').grid(row=3*i+1, column=6*(j+1)+5, padx=5, pady=10)
+                       command=partial(self.move, "TeamName" + str(2 * i + j), (0, -1)),
+                       bg='#4E4E4E').grid(row=3 * i + 1, column=6 * (j + 1) + 5, padx=5, pady=10)
                 Button(self.SubFrame, text="\U000025BC", fg='white',
-                       command=partial(self.move, "TeamName" + str(2*i+j), (0, 1)),
-                       bg='#4E4E4E').grid(row=3*i+2, column=6*(j+1)+5, padx=5, pady=10)
+                       command=partial(self.move, "TeamName" + str(2 * i + j), (0, 1)),
+                       bg='#4E4E4E').grid(row=3 * i + 2, column=6 * (j + 1) + 5, padx=5, pady=10)
                 Button(self.SubFrame, text="\U000025B2", fg='white',
-                       command=partial(self.move, "TeamName" + str(2*i+j), (1, 1)),
-                       bg='#4E4E4E').grid(row=3*i+1, column=6*(j+2)+1, padx=10, pady=10)
+                       command=partial(self.move, "TeamName" + str(2 * i + j), (1, 1)),
+                       bg='#4E4E4E').grid(row=3 * i + 1, column=6 * (j + 2) + 1, padx=10, pady=10)
                 Button(self.SubFrame, text="\U000025BC", fg='white',
-                       command=partial(self.move, "TeamName" + str(2*i+j), (-1, -1)),
-                       bg='#4E4E4E').grid(row=3*i+2, column=6*(j+2)+1, padx=10, pady=10)
+                       command=partial(self.move, "TeamName" + str(2 * i + j), (-1, -1)),
+                       bg='#4E4E4E').grid(row=3 * i + 2, column=6 * (j + 2) + 1, padx=10, pady=10)
