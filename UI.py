@@ -480,23 +480,7 @@ class MatchWindow(Toplevel):
                 self.load_black()
                 self.load_match_stats()
             else:
-                if not empty_text:
-                    self.MatchCanvas.create_rectangle(350, 400, 1190, 560, fill="white", tag="Empty", width=0)
-                    self.MatchCanvas.create_text(770, 480, width=800, text="C'est fini pour aujourd'hui.\n" +
-                                                 "Il n'y a plus de match prévus pour ce stream.\n" +
-                                                 "A plus la team!",
-                                                 justify="center", tag="Empty", font=["Ubuntu", 30])
-                    self.update_video_infos("Actu2Foot revient bientôt", self.base_description, self.base_tags)
-                    if self.videos_infos["video_id"]:
-                        self.update_videos()
-                else:
-                    self.MatchCanvas.create_rectangle(350, 450, 1190, 510, fill="white", tag="Empty", width=0)
-                    self.MatchCanvas.create_text(770, 480, text="Prochain match prévu"+empty_text, tag="Empty",
-                                                 font=["Ubuntu", 30])
-                    self.update_video_infos("[Score en direct] Prochain match prévu"+empty_text, self.base_description,
-                                            self.base_tags)
-                    if self.videos_infos["video_id"]:
-                        self.update_videos()
+                self.load_empty(empty_text)
 
         elif self.match_urls != new_urls:
             for after_id in self.afters.values():
@@ -504,7 +488,29 @@ class MatchWindow(Toplevel):
                     self.after_cancel(after_id)
             self.change_matches(new_urls)
 
+        elif new_number == 0:
+            self.load_empty(empty_text)
+
         # self.play_gif(0)
+
+    def load_empty(self, empty_text=""):
+        if not empty_text:
+            self.MatchCanvas.create_rectangle(350, 400, 1190, 560, fill="white", tag="Empty", width=0)
+            self.MatchCanvas.create_text(770, 480, width=800, text="C'est fini pour aujourd'hui.\n" +
+                                                                   "Il n'y a plus de match prévus pour ce stream.\n" +
+                                                                   "A plus la team!",
+                                         justify="center", tag="Empty", font=["Ubuntu", 30])
+            self.update_video_infos("Actu2Foot revient bientôt", self.base_description, self.base_tags)
+            if self.videos_infos["video_id"]:
+                self.update_videos()
+        else:
+            self.MatchCanvas.create_rectangle(350, 450, 1190, 510, fill="white", tag="Empty", width=0)
+            self.MatchCanvas.create_text(770, 480, text="Prochain match prévu" + empty_text, tag="Empty",
+                                         font=["Ubuntu", 30])
+            self.update_video_infos("[Score en direct] Prochain match prévu" + empty_text, self.base_description,
+                                    self.base_tags)
+            if self.videos_infos["video_id"]:
+                self.update_videos()
 
     def load_match_teams(self):
 
