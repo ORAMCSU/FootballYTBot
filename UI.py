@@ -310,13 +310,13 @@ class MatchWindow(Toplevel):
                 self.MatchCanvas.create_image(770, 500, image=self.displayed_black, tag="Black" + str(i))
 
             elif self.nb_matches == 2:
-                self.MatchCanvas.create_image(770, 270 * i + 350, image=self.displayed_black, tag="Black" + str(i))
+                self.MatchCanvas.create_image(770, 300 * i + 320, image=self.displayed_black, tag="Black" + str(i))
 
             elif self.nb_matches == 3:
-                self.MatchCanvas.create_image(770 - 375 * (i == 1) + 375 * (i == 2), 215 * (i > 0) + 350,
+                self.MatchCanvas.create_image(770 - 375 * (i == 1) + 375 * (i == 2), 265 * (i > 0) + 300,
                                               image=self.displayed_black, tag="Black" + str(i))
             elif self.nb_matches == 4:
-                self.MatchCanvas.create_image(770 - 375 * (i % 2 == 1) + 375 * (i % 2 == 0), 215 * (i > 1) + 350,
+                self.MatchCanvas.create_image(770 - 375 * (i % 2 == 1) + 375 * (i % 2 == 0), 265 * (i > 1) + 300,
                                               image=self.displayed_black, tag="Black" + str(i))
 
     def load_gif(self):
@@ -356,91 +356,91 @@ class MatchWindow(Toplevel):
 
             elif self.nb_matches == 2:
                 for i in range(2):
-                    self.MatchCanvas.create_text(333 * (1 - i) + (1 - 2 * i) * 220 + 1217 * i, 270 * j + 350,
+                    self.MatchCanvas.create_text(333 * (1 - i) + (1 - 2 * i) * 220 + 1217 * i, 300 * j + 320,  # -30
                                                  font=["Ubuntu", 22],
                                                  fill="white", justify="center", tag="TeamName" + str(2 * j + i))
 
                 for i in range(2):
-                    self.MatchCanvas.create_text(325 * (1 - i) + (1 - 2 * i) * 383 + 1217 * i, 270 * j + 380,
+                    self.MatchCanvas.create_text(325 * (1 - i) + (1 - 2 * i) * 383 + 1217 * i, 300 * j + 350,
                                                  font=["Ubuntu", 40],
                                                  fill="white", justify="center", tag="score" + str(2 * j + i))
 
-                self.MatchCanvas.create_rectangle(360, 450 + 270 * j, 1180, 511 + 270 * j, width=0, tag="bg" + str(j))
-                self.MatchCanvas.create_text(771, 483 + 270 * j,
+                self.MatchCanvas.create_rectangle(360, 420 + 300 * j, 1180, 506 + 300 * j, width=0, tag="bg" + str(j))
+                self.MatchCanvas.create_text(771, 463 + 300 * j,
                                              text="", font=["Arial", 10],
                                              fill="black", tag="commentaire" + str(j), width=800)
 
                 for i in range(2):
-                    self.MatchCanvas.create_image(333 * (1 - i) + (1 - 2 * i) * 80 + 1207 * i, 270 * j + 350,
+                    self.MatchCanvas.create_image(333 * (1 - i) + (1 - 2 * i) * 80 + 1207 * i, 300 * j + 320,
                                                   tag="Teamlogo" + str(2 * j + i))
 
-                self.MatchCanvas.create_text(771, 307 + 270 * j, justify="center", tag="timer" + str(j))
-                self.MatchCanvas.create_image(725, 307 + 270 * j, tag="gif" + str(j))
+                self.MatchCanvas.create_text(771, 277 + 300 * j, justify="center", tag="timer" + str(j))
+                self.MatchCanvas.create_image(725, 277 + 300 * j, tag="gif" + str(j))
 
             elif self.nb_matches == 3:
                 for i in range(2):
                     self.MatchCanvas.create_text((420 - 375 * (j == 1) + 375 * (j == 2)) * (1 - i) + (1 - 2 * i) * 190 +
-                                                 (1120 - 375 * (j == 1) + 375 * (j == 2)) * i, 215 * (j >= 1) + 350,
+                                                 (1120 - 375 * (j == 1) + 375 * (j == 2)) * i, 265 * (j >= 1) + 300,
                                                  font=["Ubuntu", 20],
                                                  fill="white", justify="center", tag="TeamName" + str(2 * j + i))
 
                 for i in range(2):
                     self.MatchCanvas.create_text((420 - 375 * (j == 1) + 375 * (j == 2)) * (1 - i) + (1 - 2 * i) * 300 +
-                                                 (1122 - 375 * (j == 1) + 375 * (j == 2)) * i, 215 * (j >= 1) + 372,
+                                                 (1122 - 375 * (j == 1) + 375 * (j == 2)) * i, 265 * (j >= 1) + 322,
                                                  font=["Ubuntu", 35],
                                                  fill="white", justify="center", tag="score" + str(2 * j + i))
 
-                self.MatchCanvas.create_rectangle(50 + 375 * (j == 0) + 750 * (j == 2), 432 + 215 * (j >= 1),
-                                                  740 + 375 * (j == 0) + 750 * (j == 2), 479 + 215 * (j >= 1),
+                self.MatchCanvas.create_rectangle(50 + 375 * (j == 0) + 750 * (j == 2), 387 + 265 * (j >= 1),
+                                                  740 + 375 * (j == 0) + 750 * (j == 2), 469 + 265 * (j >= 1),
                                                   width=0, tag="bg" + str(j))
 
-                self.MatchCanvas.create_text((770 - 375 * (j == 1) + 375 * (j == 2)), 215 * (j >= 1) + 455,
+                self.MatchCanvas.create_text((770 - 375 * (j == 1) + 375 * (j == 2)), 265 * (j >= 1) + 425,
                                              text="", font=["Arial", 8],
                                              fill="black", tag="commentaire" + str(j), width=680)
 
                 for i in range(2):
                     self.MatchCanvas.create_image((420 - 375 * (j == 1) + 375 * (j == 2)) * (1 - i) + (1 - 2 * i) * 70 +
-                                                  (1120 - 375 * (j == 1) + 375 * (j == 2)) * i, 215 * (j >= 1) + 350,
+                                                  (1120 - 375 * (j == 1) + 375 * (j == 2)) * i, 265 * (j >= 1) + 300,
                                                   tag="Teamlogo" + str(2 * j + i))
 
-                self.MatchCanvas.create_text(771 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
+                self.MatchCanvas.create_text(771 - 375 * (j == 1) + 375 * (j == 2), 263 + 265 * (j >= 1),
                                              justify="center", tag="timer" + str(j))
-                self.MatchCanvas.create_image(730 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
+                self.MatchCanvas.create_image(730 - 375 * (j == 1) + 375 * (j == 2), 263 + 265 * (j >= 1),
                                               tag="gif" + str(j))
 
             elif self.nb_matches == 4:
                 for i in range(2):
                     self.MatchCanvas.create_text(
                         (420 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
-                        190 + (1120 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i, 215 * (j >= 2) + 350,
+                        190 + (1120 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i, 265 * (j >= 2) + 300,
                         font=["Ubuntu", 20],
                         fill="white", justify="center", tag="TeamName" + str(2 * j + i))
 
                 for i in range(2):
                     self.MatchCanvas.create_text(
                         (420 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
-                        300 + (1122 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i, 215 * (j >= 2) + 372,
+                        300 + (1122 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i, 265 * (j >= 2) + 322,  #-50, +50
                         font=["Ubuntu", 35],
                         fill="white", justify="center", tag="score" + str(2 * j + i))
 
-                self.MatchCanvas.create_rectangle(50 + 750 * (j % 2 == 1), 432 + 215 * (j >= 2),
-                                                  740 + 750 * (j % 2 == 1), 479 + 215 * (j >= 2),
+                self.MatchCanvas.create_rectangle(50 + 750 * (j % 2 == 1), 385 + 265 * (j >= 2),  # -45
+                                                  740 + 750 * (j % 2 == 1), 469 + 265 * (j >= 2),  # -10
                                                   width=0, tag="bg" + str(j))
 
                 self.MatchCanvas.create_text((770 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)),
-                                             215 * (j >= 2) + 455,
+                                             265 * (j >= 2) + 425, # -30
                                              text="", font=["Arial", 8],
                                              fill="black", tag="commentaire" + str(j), width=680)
 
                 for i in range(2):
                     self.MatchCanvas.create_image(
                         (420 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
-                        70 + (1120 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i, 215 * (j >= 2) + 350,
+                        70 + (1120 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i, 265 * (j >= 2) + 300,
                         tag="Teamlogo" + str(2 * j + i))
 
-                self.MatchCanvas.create_text(771 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
+                self.MatchCanvas.create_text(771 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 263 + 265 * (j >= 2),
                                              justify="center", tag="timer" + str(j))
-                self.MatchCanvas.create_image(730 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
+                self.MatchCanvas.create_image(730 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 213 + 265 * (j >= 2),
                                               tag="gif" + str(j))
         self.load_match_teams()
         self.reload_match_score()
