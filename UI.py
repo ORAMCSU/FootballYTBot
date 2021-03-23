@@ -1,6 +1,7 @@
 import csv
 from pickle import load
 from tkinter import *
+from tkinter import colorchooser
 from tkinter.ttk import Separator
 from tkinter.filedialog import askopenfilename
 from tkinter.messagebox import showerror
@@ -839,9 +840,9 @@ class SetupFrame(Frame):
 
             self.old_number = number
 
-            self.MatchButton.grid(row=self.old_number + 2, column=1)
+            self.MatchButton.grid(row=self.old_number + 2, column=1, padx=10, pady=10)
             if self.cb == 1:
-                self.Schedule.grid(row=self.old_number + 2, column=2)
+                self.Schedule.grid(row=self.old_number + 2, column=2, padx=10, pady=10)
 
     def launch_match(self, _event=None):
         if self.old_number:
@@ -872,6 +873,12 @@ class EditFrame(Frame):
         self.nb_matches = 0
         self.master = master
         self.musicfile = ""
+        self.displayed = 0
+
+        self.color = 'black'
+        self.ColorPicker = Button(self, text="Couleur", command=self.choose_color, bg='#4E4E4E', fg='white')
+        self.DefinedText = Entry(self, width=70, bg='#6b6b6b', fg='white')
+        self.DisplayButton = Button(self, text="Afficher Message", command=self.display_text, bg='#4E4E4E', fg='white')
 
         self.VideoEntry = Entry(self, width=70, bg='#6b6b6b', fg='white')
         self.VideoButton = Button(self, text="Charger", command=self.load_video, width=10, bg='#4E4E4E',
@@ -882,12 +889,34 @@ class EditFrame(Frame):
 
         self.SubFrame = Frame(self, bg='#4E4E4E')
 
-        Label(self, text="Url du stream: ", width=20, bg='#4E4E4E', fg='white').grid(row=0, column=0)
-        self.VideoEntry.grid(row=0, column=1, padx=10, pady=10)
-        self.VideoButton.grid(row=0, column=2, padx=10, pady=10)
-        self.MusicButton.grid(row=1, column=0, padx=10, pady=10)
-        self.MusicPlay.grid(row=1, column=1, padx=10, pady=10)
-        self.SubFrame.grid(row=2, column=0, columnspan=3)
+        Separator(self, orient="horizontal").grid(row=0, column=0, columnspan=3, sticky="we", pady=4)
+        self.ColorPicker.grid(row=1, column=0, padx=10, pady=10)
+        self.DefinedText.grid(row=1, column=1, padx=10, pady=10)
+        self.DisplayButton.grid(row=1, column=2, padx=10, pady=10)
+        Separator(self, orient="horizontal").grid(row=0, column=0, columnspan=3, sticky="we", pady=4)
+        Label(self, text="Url du stream: ", width=20, bg='#4E4E4E', fg='white').grid(row=2, column=0)
+        self.VideoEntry.grid(row=2, column=1, padx=10, pady=10)
+        self.VideoButton.grid(row=2, column=2, padx=10, pady=10)
+        self.MusicButton.grid(row=3, column=0, padx=10, pady=10)
+        self.MusicPlay.grid(row=3, column=1, padx=10, pady=10)
+        self.SubFrame.grid(row=4, column=0, columnspan=3)
+
+    def display_text(self):
+        if self.master.MatchWindow and self.DefinedText.get() != "" and self.displayed == 0:
+            self.DisplayButton.config(text="Supprimer message")
+            self.master.MatchWindow.MatchCanvas.create_rectangle(370, 820, 1170, 860, fill="white", width=0,
+                                                                 tag="white_defined_bg")
+            self.master.MatchWindow.MatchCanvas.create_text(770, 840, text=self.DefinedText.get(),
+                                                            fill=self.color, font=["Ubuntu", 18], tag="defined_text")
+            self.displayed = 1
+        elif self.displayed == 1:
+            self.DisplayButton.config(text="Afficher message")
+            self.master.MatchWindow.MatchCanvas.delete("white_defined_bg")
+            self.master.MatchWindow.MatchCanvas.delete("defined_text")
+            self.displayed = 0
+
+    def choose_color(self):
+        self.color = colorchooser.askcolor(title="Choose color")[1]
 
     def load_video(self):
 
