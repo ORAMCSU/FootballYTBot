@@ -1,3 +1,4 @@
+import csv
 from pickle import load
 from tkinter import *
 from tkinter.ttk import Separator
@@ -38,7 +39,6 @@ class ManagerWindow(Tk):
 
         if not self.MatchWindow:
             self.MatchWindow = MatchWindow(master=self, nb_matches=nb_matches, url_list=url_list, empty_text=empty_text)
-
             self.StreamFrame.load_edit(nb_matches)
 
         else:
@@ -200,11 +200,15 @@ class ManagerWindow(Tk):
                 if not self.csv_links:
                     return
 
+    def destroy(self):
+        if self.MatchWindow:
+            self.MatchWindow.destroy()
+        Tk.destroy(self)
+
 
 class MatchWindow(Toplevel):
 
     def __init__(self, master: ManagerWindow, nb_matches, url_list=None, empty_text=""):
-
         Toplevel.__init__(self, master)
         self.youtube = self.authenticate()
         self.master = master
@@ -653,7 +657,7 @@ class MatchWindow(Toplevel):
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
             minute_text = soup.find(class_="status").text
             if minute_text.split(" ")[0] == "Coup":
-                self.MatchCanvas.itemconfigure("timer" + str(j), text="Coup\nd'envoi",
+                self.MatchCanvas.itemconfigure("timer" + str(j), text="Débute\nà " + minute_text.split(" ")[3],
                                                font=["Ubuntu",
                                                      7 + 3 * (self.nb_matches <= 2) + 2 * (self.nb_matches == 1)])
             elif minute_text == " Mi-temps":
@@ -750,6 +754,7 @@ class MatchWindow(Toplevel):
         if mixer.get_init():
             mixer.music.stop()
             mixer.quit()
+        self.master.StreamFrame.load_edit(0)
         self.master.erase()
         Toplevel.destroy(self)
 
@@ -766,28 +771,67 @@ class SetupFrame(Frame):
         self.master = master
         self.old_number = 0
         self.url_entries = []
+        self.cb = 0
 
+        self.ModeButton = Checkbutton(self, text="Mode Automatique", command=self.change_mode, bg='#4E4E4E')
         self.MatchButton = Button(self, text="Lancer le suivi", command=self.launch_match, bg='#4E4E4E', fg='white')
         self.NumberRoll = Spinbox(self, from_=1, to=4, bg='#4E4E4E', fg='white')
         self.NumberButton = Button(self, text="Valider", command=self.generate_urls, width=10, bg='#4E4E4E', fg='white')
         self.Schedule = Button(self, text="Schedule", command=self.launch_schedule, width=10, bg='#4E4E4E', fg='white')
 
-        Label(self, text="Nombre de matches: ", width=20, bg='#4E4E4E', fg='white').grid(row=0, column=0)
-        self.NumberRoll.grid(row=0, column=1, padx=10, pady=10)
-        self.NumberButton.grid(row=0, column=2, padx=10, pady=10)
-        self.Schedule.grid(row=0, column=3, padx=10, pady=10)
+        self.ModeButton.grid(row=0, column=1, padx=10, pady=10)
+        Label(self, text="Nombre de matches: ", width=20, bg='#4E4E4E', fg='white').grid(row=1, column=0)
+        self.NumberRoll.grid(row=1, column=1, padx=10, pady=10)
+        self.NumberButton.grid(row=1, column=2, padx=10, pady=10)
 
         self.generate_urls()
 
-    def generate_urls(self, _event=None):
+    def change_mode(self):
+        if self.cb == 0:
+            self.cb = 1
+            self.MatchButton.configure(text="Ajouter au csv", command=self.load_to_csv)
+            self.NumberRoll.config(to=10)
+            self.generate_urls()
+            self.Schedule.grid(row=self.old_number + 2, column=2)
+        else:
+            self.cb = 0
+            self.MatchButton.config(text="Lancer le suivi", command=self.launch_match)
+            self.NumberRoll.config(to=4)
+            self.generate_urls()
+            self.Schedule.grid_remove()
 
+    def load_to_csv(self):
+        if self.old_number:
+            url_list = []
+            for i in self.url_entries:
+                if i.get() and i.get()[:40] == "https://www.matchendirect.fr/live-score/" and \
+                        i.get()[-5:] == ".html":
+                    if bs4.BeautifulSoup(requests.get(i.get()).text, "html.parser").find("title")\
+                            .text != "Erreur 404":
+                        url_list.append(i.get())
+                    else:
+                        showerror("Erreur 404", f"Le match que vous cherchez, {i.get()}, " +
+                                  "n'existe pas sur matchendirect.")
+                        return
+                else:
+                    showerror("Mauvaises urls", "Vérifiez la validité des urls entrées.")
+                    return
+            with open("ressources/schedule.csv", 'r') as f:
+                writer = csv.reader(f, delimiter='\n')
+                for url in writer:
+                    url_list += url
+            with open("ressources/schedule.csv", 'w') as f:
+                writer = csv.writer(f, delimiter='\n')
+                writer.writerow(url_list)
+
+    def generate_urls(self, _event=None):
         number = int(self.NumberRoll.get())
         if self.old_number != number:
             self.MatchButton.grid_forget()
             if number > self.old_number:
                 for i in range(number - self.old_number):
                     self.url_entries.append(Entry(self, width=70, bg='#6b6b6b', fg='white'))
-                    self.url_entries[self.old_number + i].grid(row=self.old_number + 1 + i, column=1, padx=10, pady=10)
+                    self.url_entries[self.old_number + i].grid(row=self.old_number + 2 + i, column=1, padx=10, pady=10)
             else:
                 for i in range(self.old_number - number):
                     self.url_entries[number + i].destroy()
@@ -795,16 +839,18 @@ class SetupFrame(Frame):
 
             self.old_number = number
 
-            self.MatchButton.grid(row=self.old_number + 1, column=1)
+            self.MatchButton.grid(row=self.old_number + 2, column=1)
+            if self.cb == 1:
+                self.Schedule.grid(row=self.old_number + 2, column=2)
 
     def launch_match(self, _event=None):
-
         if self.old_number:
             url_list = []
             for i in self.url_entries:
                 if i.get() and i.get()[:40] == "https://www.matchendirect.fr/live-score/" and \
                         i.get()[-5:] == ".html":
-                    if bs4.BeautifulSoup(requests.get(i.get()).text, "html.parser").find("title").text != "Erreur 404":
+                    if bs4.BeautifulSoup(requests.get(i.get()).text, "html.parser").find("title")\
+                            .text != "Erreur 404":
                         url_list.append(i.get())
                     else:
                         showerror("Erreur 404", f"Le match que vous cherchez, {i.get()}, " +
@@ -874,8 +920,7 @@ class EditFrame(Frame):
         for i in self.SubFrame.grid_slaves():
             i.destroy()
 
-        Separator(self.SubFrame, orient="horizontal").grid(row=0, column=0, columnspan=20,
-                                                           sticky="we", pady=4)
+        Separator(self.SubFrame, orient="horizontal").grid(row=0, column=0, columnspan=20, sticky="we", pady=4)
 
         for i in range(self.nb_matches):
             Label(self.SubFrame, text="Match " + str(i + 1),
