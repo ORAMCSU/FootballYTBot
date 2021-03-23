@@ -1,0 +1,567 @@
+from pickle import load
+import PIL.ImageTk
+import PIL.Image
+import googleapiclient.discovery
+from pygame import mixer
+from tkinter import Toplevel, Canvas
+from tkinter.messagebox import showerror
+import bs4
+import requests
+from UI import ManagerWindow
+
+
+class MatchWindow(Toplevel):
+
+    def __init__(self, master: ManagerWindow, nb_matches, url_list=None, empty_text=""):
+
+        Toplevel.__init__(self, master)
+        self.youtube = self.authenticate()
+        self.master = master
+        self.title("Match Stream")
+        self.match_urls = []
+        self.nb_matches = -1
+        self.gif = []
+        self.stop_gif = False
+        self.afters = {"scores": None, "timer": None, "commentaries": None, "gif": None}
+        self.after_blocked = {"scores": False, "timer": False, "commentaries": False, "gif": False}
+        self.videos_infos = {"video_id": None, "title": "", "description": [], "tags": []}
+        self.base_description = ["", "Subscribe! /Abonne-toi!",
+                                 "https://www.youtube.com/channel/UCvahkUIQv3F1eYh7BV0CmbQ?sub_confirmation=1", ""]
+        self.base_tags = ["foot", "match foot", "foot en direct", "Actu2Foot", "uefa", "match en direct", "direct",
+                          "football", "buts", "goals", "actu2foot", "actu foot", "score", "score direct", "match",
+                          "multiplex", "live", "score en direct", "stream", "communauté foot"]
+
+        self.MatchCanvas = Canvas(self, width=1536, height=864)
+        self.MatchCanvas.grid(row=0, column=0)
+
+        self.displayed_bg = None
+        self.displayed_logo = None
+        self.displayed_black = None
+        self.displayed_icons = []
+        self.displayed_teamlogos = []
+        self.displayed_championnat = None
+
+        self.load_gif()
+        self.load_bases()
+        self.load_channel_stats()
+        self.change_match_number(nb_matches, url_list, empty_text)
+
+    def update_videos(self):
+
+        print(self.videos_infos)
+
+        videos_list_response = self.youtube.videos().list(id=self.videos_infos["video_id"], part="snippet").execute()
+
+        videos_list_snippet = videos_list_response["items"][0]["snippet"]
+
+        videos_list_snippet["title"] = self.videos_infos["title"]
+        videos_list_snippet["description"] = "\n".join(self.videos_infos["description"])
+        videos_list_snippet["tags"] = list(set(self.videos_infos["tags"]))
+
+        self.youtube.videos() \
+            .update(part="snippet", body=dict(snippet=videos_list_snippet, id=self.videos_infos["video_id"])).execute()
+
+    def update_video_infos(self, titre="", description=None, tags=None):
+        self.videos_infos["title"] = titre
+        if description:
+            self.videos_infos["description"] = description
+        if tags:
+            self.videos_infos["tags"] = tags
+
+    def load_bases(self):
+        pil_image = PIL.Image.open("./ressources/images/fond_direct.jpg")
+        pil_image2 = pil_image.resize((1536, 864))
+        pil_image.close()
+        self.displayed_bg = PIL.ImageTk.PhotoImage(pil_image2)
+
+        self.MatchCanvas.create_image(770, 434, image=self.displayed_bg, tag="Background")
+
+        pil_image2.close()
+        pil_image = PIL.Image.open("./ressources/images/logo.png")
+        pil_image2 = pil_image.resize((100, 100))
+        pil_image.close()
+        self.displayed_logo = PIL.ImageTk.PhotoImage(pil_image2)
+
+        self.MatchCanvas.create_image(70, 70, image=self.displayed_logo, tag="Logo")
+
+        pil_image2.close()
+
+        self.load_black()
+
+        iconlist = ["./ressources/images/youtube.png", "./ressources/images/views.png", "./ressources/images/likes.png"]
+        for i in range(3):
+            self.MatchCanvas.create_rectangle(1306, 20 + 70 * i, 1486, 70 + 70 * i, fill="white", outline="white")
+            pil_image2.close()
+            pil_image = PIL.Image.open(iconlist[i])
+            pil_image2 = pil_image.resize((int((pil_image.size[0] / pil_image.size[1]) * 40), 40))
+            pil_image.close()
+
+            self.displayed_icons.append(PIL.ImageTk.PhotoImage(pil_image2))
+            self.MatchCanvas.create_image(1341, 45 + 70 * i, image=self.displayed_icons[i], tag="Icon" + str(i))
+
+        pil_image2.close()
+
+    def load_black(self):
+
+        pil_image = PIL.Image.open("./ressources/images/affiche_vierge.png")
+
+        if self.nb_matches == 1:
+            pil_image2 = pil_image.resize((1150, 234))
+        elif self.nb_matches == 2:
+            pil_image2 = pil_image.resize((875, 195))
+        else:  # self.nb_matches == 3 or self.nb_matches == 4:
+            pil_image2 = pil_image.resize((700, 156))
+        pil_image.close()
+        if pil_image2:
+            self.displayed_black = PIL.ImageTk.PhotoImage(pil_image2)
+
+        for i in range(self.nb_matches):
+            if self.nb_matches == 1:
+                self.MatchCanvas.create_image(770, 500, image=self.displayed_black, tag="Black" + str(i))
+
+            elif self.nb_matches == 2:
+                self.MatchCanvas.create_image(770, 270 * i + 350, image=self.displayed_black, tag="Black" + str(i))
+
+            elif self.nb_matches == 3:
+                self.MatchCanvas.create_image(770 - 375 * (i == 1) + 375 * (i == 2), 215 * (i > 0) + 350,
+                                              image=self.displayed_black, tag="Black" + str(i))
+            elif self.nb_matches == 4:
+                self.MatchCanvas.create_image(770 - 375 * (i % 2 == 1) + 375 * (i % 2 == 0), 215 * (i > 1) + 350,
+                                              image=self.displayed_black, tag="Black" + str(i))
+
+    def load_gif(self):
+        gifimg = PIL.Image.open("./ressources/images/gif-eye.gif")
+
+        for i in range(55):
+            gifimg.seek(i)
+            self.gif.append(PIL.ImageTk.PhotoImage(gifimg.copy().resize((30, 30))))
+
+        gifimg.close()
+
+    def load_match_stats(self):
+
+        # font_sizes = ((30, 40, 12, (12, 35)), (22, 40, 10, (10, 25)), (20, 35, 8, (7, 20)), (20, 35, 8, (7, 20)))
+
+        for j in range(self.nb_matches):
+
+            if self.nb_matches == 1:
+                for i in range(2):
+                    self.MatchCanvas.create_text(195 * (1 - i) + (1 - 2 * i) * 300 + 1347 * i, 500, font=["Ubuntu", 30],
+                                                 fill="white", justify="center", tag="TeamName" + str(i))
+
+                for i in range(2):
+                    self.MatchCanvas.create_text(195 * (1 - i) + (1 - 2 * i) * 493 + 1347 * i, 535, font=["Ubuntu", 40],
+                                                 fill="white", justify="center", tag="score" + str(i))
+
+                self.MatchCanvas.create_rectangle(221, 625, 1321, 720, tag="bg" + str(j), width=0)
+                self.MatchCanvas.create_text(771, 672, font=["Arial", 12],
+                                             fill="black", tag="commentaire" + str(j), width=1100)
+
+                for i in range(2):
+                    self.MatchCanvas.create_image(195 * (1 - i) + (1 - 2 * i) * 100 + 1347 * i, 500, tag="Teamlogo" +
+                                                                                                         str(2 * j + i))
+
+                self.MatchCanvas.create_text(771, 448, justify="center", tag="timer" + str(j))
+                self.MatchCanvas.create_image(720, 448, tag="gif" + str(j))
+
+            elif self.nb_matches == 2:
+                for i in range(2):
+                    self.MatchCanvas.create_text(333 * (1 - i) + (1 - 2 * i) * 220 + 1217 * i, 270 * j + 350,
+                                                 font=["Ubuntu", 22],
+                                                 fill="white", justify="center", tag="TeamName" + str(2 * j + i))
+
+                for i in range(2):
+                    self.MatchCanvas.create_text(325 * (1 - i) + (1 - 2 * i) * 383 + 1217 * i, 270 * j + 380,
+                                                 font=["Ubuntu", 40],
+                                                 fill="white", justify="center", tag="score" + str(2 * j + i))
+
+                self.MatchCanvas.create_rectangle(360, 450 + 270 * j, 1180, 511 + 270 * j, width=0, tag="bg" + str(j))
+                self.MatchCanvas.create_text(771, 483 + 270 * j,
+                                             text="", font=["Arial", 10],
+                                             fill="black", tag="commentaire" + str(j), width=800)
+
+                for i in range(2):
+                    self.MatchCanvas.create_image(333 * (1 - i) + (1 - 2 * i) * 80 + 1207 * i, 270 * j + 350,
+                                                  tag="Teamlogo" + str(2 * j + i))
+
+                self.MatchCanvas.create_text(771, 307 + 270 * j, justify="center", tag="timer" + str(j))
+                self.MatchCanvas.create_image(725, 307 + 270 * j, tag="gif" + str(j))
+
+            elif self.nb_matches == 3:
+                for i in range(2):
+                    self.MatchCanvas.create_text((420 - 375 * (j == 1) + 375 * (j == 2)) * (1 - i) + (1 - 2 * i) * 190 +
+                                                 (1120 - 375 * (j == 1) + 375 * (j == 2)) * i, 215 * (j >= 1) + 350,
+                                                 font=["Ubuntu", 20],
+                                                 fill="white", justify="center", tag="TeamName" + str(2 * j + i))
+
+                for i in range(2):
+                    self.MatchCanvas.create_text((420 - 375 * (j == 1) + 375 * (j == 2)) * (1 - i) + (1 - 2 * i) * 300 +
+                                                 (1122 - 375 * (j == 1) + 375 * (j == 2)) * i, 215 * (j >= 1) + 372,
+                                                 font=["Ubuntu", 35],
+                                                 fill="white", justify="center", tag="score" + str(2 * j + i))
+
+                self.MatchCanvas.create_rectangle(50 + 375 * (j == 0) + 750 * (j == 2), 432 + 215 * (j >= 1),
+                                                  740 + 375 * (j == 0) + 750 * (j == 2), 479 + 215 * (j >= 1),
+                                                  width=0, tag="bg" + str(j))
+
+                self.MatchCanvas.create_text((770 - 375 * (j == 1) + 375 * (j == 2)), 215 * (j >= 1) + 455,
+                                             text="", font=["Arial", 8],
+                                             fill="black", tag="commentaire" + str(j), width=680)
+
+                for i in range(2):
+                    self.MatchCanvas.create_image((420 - 375 * (j == 1) + 375 * (j == 2)) * (1 - i) + (1 - 2 * i) * 70 +
+                                                  (1120 - 375 * (j == 1) + 375 * (j == 2)) * i, 215 * (j >= 1) + 350,
+                                                  tag="Teamlogo" + str(2 * j + i))
+
+                self.MatchCanvas.create_text(771 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
+                                             justify="center", tag="timer" + str(j))
+                self.MatchCanvas.create_image(730 - 375 * (j == 1) + 375 * (j == 2), 313 + 215 * (j >= 1),
+                                              tag="gif" + str(j))
+
+            elif self.nb_matches == 4:
+                for i in range(2):
+                    self.MatchCanvas.create_text(
+                        (420 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
+                        190 + (1120 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i, 215 * (j >= 2) + 350,
+                        font=["Ubuntu", 20],
+                        fill="white", justify="center", tag="TeamName" + str(2 * j + i))
+
+                for i in range(2):
+                    self.MatchCanvas.create_text(
+                        (420 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
+                        300 + (1122 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i, 215 * (j >= 2) + 372,
+                        font=["Ubuntu", 35],
+                        fill="white", justify="center", tag="score" + str(2 * j + i))
+
+                self.MatchCanvas.create_rectangle(50 + 750 * (j % 2 == 1), 432 + 215 * (j >= 2),
+                                                  740 + 750 * (j % 2 == 1), 479 + 215 * (j >= 2),
+                                                  width=0, tag="bg" + str(j))
+
+                self.MatchCanvas.create_text((770 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)),
+                                             215 * (j >= 2) + 455,
+                                             text="", font=["Arial", 8],
+                                             fill="black", tag="commentaire" + str(j), width=680)
+
+                for i in range(2):
+                    self.MatchCanvas.create_image(
+                        (420 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
+                        70 + (1120 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i, 215 * (j >= 2) + 350,
+                        tag="Teamlogo" + str(2 * j + i))
+
+                self.MatchCanvas.create_text(771 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
+                                             justify="center", tag="timer" + str(j))
+                self.MatchCanvas.create_image(730 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 313 + 215 * (j >= 2),
+                                              tag="gif" + str(j))
+        self.load_match_teams()
+        self.reload_match_score()
+        self.reload_match_commentaries()
+        self.reload_match_timer()
+
+    def change_matches(self, new_urls):
+
+        self.match_urls = new_urls
+        self.load_match_teams()
+        self.reload_match_score()
+        self.reload_match_commentaries()
+        self.reload_match_timer()
+
+    def change_match_number(self, new_number, new_urls, empty_text=""):
+        self.stop_gif = True
+        for value in self.after_blocked.values():
+            if value:
+                self.after(500, self.change_match_number, new_number, new_urls)
+                return
+        self.stop_gif = False
+
+        self.MatchCanvas.delete("Empty")
+        self.MatchCanvas.delete("champ")
+
+        if new_number != self.nb_matches:
+            for after_id in self.afters.values():
+                if after_id:
+                    self.after_cancel(after_id)
+            for j in range(self.nb_matches):
+                self.MatchCanvas.delete("bg" + str(j))
+                self.MatchCanvas.delete("commentaire" + str(j))
+                self.MatchCanvas.delete("timer" + str(j))
+                self.MatchCanvas.delete("Black" + str(j))
+                self.MatchCanvas.delete("gif" + str(j))
+                for i in range(2):
+                    self.MatchCanvas.delete("Teamlogo" + str(2 * j + i))
+                    self.MatchCanvas.delete("TeamName" + str(2 * j + i))
+                    self.MatchCanvas.delete("score" + str(2 * j + i))
+
+            self.nb_matches = new_number
+            self.match_urls = new_urls
+            if self.nb_matches:
+                self.load_black()
+                self.load_match_stats()
+            else:
+                self.load_empty(empty_text)
+
+        elif self.match_urls != new_urls:
+            for after_id in self.afters.values():
+                if after_id:
+                    self.after_cancel(after_id)
+            self.change_matches(new_urls)
+
+        elif new_number == 0:
+            self.load_empty(empty_text)
+
+        # self.play_gif(0)
+
+    def load_empty(self, empty_text=""):
+        if not empty_text:
+            self.MatchCanvas.create_rectangle(350, 400, 1190, 560, fill="white", tag="Empty", width=0)
+            self.MatchCanvas.create_text(770, 480, width=800, text="C'est fini pour aujourd'hui.\n" +
+                                                                   "Il n'y a plus de match prévus pour ce stream.\n" +
+                                                                   "A plus la team!",
+                                         justify="center", tag="Empty", font=["Ubuntu", 30])
+            self.update_video_infos("Actu2Foot revient bientôt", self.base_description, self.base_tags)
+            if self.videos_infos["video_id"]:
+                self.update_videos()
+        else:
+            self.MatchCanvas.create_rectangle(350, 450, 1190, 510, fill="white", tag="Empty", width=0)
+            self.MatchCanvas.create_text(770, 480, text="Prochain match prévu" + empty_text, tag="Empty",
+                                         font=["Ubuntu", 30])
+            self.update_video_infos("[Score en direct] Prochain match prévu" + empty_text, self.base_description,
+                                    self.base_tags)
+            if self.videos_infos["video_id"]:
+                self.update_videos()
+
+    def load_match_teams(self):
+
+        self.displayed_teamlogos = []
+        self.videos_infos["title"] = "[Score en direct]"
+        self.displayed_championnat = None
+        first_url_logo_champ = ""
+        dict_head_description = {}
+        hashtag_description = []
+        list_tags = []
+
+        for j in range(self.nb_matches):
+            if j >= len(self.match_urls):
+                return
+
+            match_title = " "
+            match_head_description = ""
+            match_page = requests.get(self.match_urls[j])
+            soup = bs4.BeautifulSoup(match_page.text, "html.parser")
+            championnat = soup.find("div", class_="info1").text.split("|")[1][1:-1]
+            if championnat not in dict_head_description:
+                dict_head_description[championnat] = [""]
+            hashtag = "#" + championnat.lower().replace(" ", "").replace("-", "")
+            if not (hashtag in hashtag_description):
+                hashtag_description.append(hashtag)
+            tag = championnat.lower()
+            if not (tag in list_tags):
+                list_tags.append(tag)
+            i = 0
+            for div in soup.find_all("div", class_="col-xs-4 text-center team"):
+                self.MatchCanvas.itemconfigure("TeamName" + str(2 * j + i), text=div.text[1:-1].replace(" ", "\n"))
+                match_title += div.text[1:-1]
+                match_head_description += div.text[1:-1]
+                hashtag = "#" + div.text[1:-1].lower().replace(" ", "").replace("-", "")
+                hashtag_description.append(hashtag)
+                tag = div.text[1:-1].lower()
+                list_tags.append(tag)
+                if i == 0:
+                    match_title += "-"
+                    match_head_description += " - "
+                i += 1
+
+            match_head_description += " | [Score en direct]"
+            dict_head_description[championnat].append(match_head_description)
+
+            if j != (self.nb_matches - 1):
+                match_title += " |"
+
+            if len(self.videos_infos["title"] + match_title) <= 100:
+                self.videos_infos["title"] += match_title
+            elif self.videos_infos["title"][0:18] == "[Score en direct]" and \
+                    len(self.videos_infos["title"][18:] + match_title) <= 100:
+                self.videos_infos["title"] = self.videos_infos["title"][18:] + match_title
+
+            i = 0
+            for div in soup.find_all("div", class_="col-xs-4 text-center"):
+                full_url = "https://www.matchendirect.fr" + div.find("img")["src"].replace("/96/", "/128/")
+                pil_image = PIL.Image.open(requests.get(full_url, stream=True).raw)
+                self.displayed_teamlogos.append(PIL.ImageTk.PhotoImage(pil_image))
+                self.MatchCanvas.itemconfigure("Teamlogo" + str(2 * j + i), image=self.displayed_teamlogos[2 * j + i])
+                i += 1
+
+            url_logo_champ = "https://www.matchendirect.fr" + \
+                             soup.find("div", class_="col-xs-4 text-center imgfootball").find("img")["src"]
+
+            if j == 0:
+                first_url_logo_champ = url_logo_champ
+                pil_image = PIL.Image.open(requests.get(url_logo_champ, stream=True).raw)
+                logo = PIL.ImageTk.PhotoImage(pil_image)
+                self.displayed_championnat = logo
+            else:
+                if first_url_logo_champ != url_logo_champ:
+                    self.displayed_championnat = None
+
+        self.display_championnat()
+
+        if self.videos_infos["title"][-1] == "|":
+            self.videos_infos["title"] = self.videos_infos["title"][:-1]
+
+        head_description = []
+        for key in dict_head_description:
+            head_description.append(key)
+            for match in dict_head_description[key]:
+                head_description.append(match)
+            head_description.append("")
+
+        self.videos_infos["description"] = head_description + self.base_description + hashtag_description
+        self.videos_infos["tags"] = self.base_tags + list_tags
+
+        if self.videos_infos["video_id"]:
+            self.update_videos()
+
+    def display_championnat(self):
+        if self.displayed_championnat:
+            self.MatchCanvas.create_image(770, 120, image=self.displayed_championnat, tag="champ")
+
+    def reload_match_score(self):
+        self.after_blocked["scores"] = True
+        for j in range(self.nb_matches):
+            match_page = requests.get(self.match_urls[j])
+            soup = bs4.BeautifulSoup(match_page.text, "html.parser")
+            i = 0
+            for score in soup.find_all(class_="score"):
+                self.MatchCanvas.itemconfigure("score" + str(2 * j + i), text=score.text)
+                i += 1
+        print("Scores mis à jour")
+        self.afters["scores"] = self.after(10000, self.reload_match_score)
+        self.after_blocked["scores"] = False
+
+    def reload_match_commentaries(self):
+        self.after_blocked["commentaries"] = True
+        for j in range(self.nb_matches):
+            match_page = requests.get(self.match_urls[j])
+            soup = bs4.BeautifulSoup(match_page.text, "html.parser")
+            a = soup.find(class_="bg-primary")
+            if a is not None:
+                if not a.text:
+                    a = "0'"
+                else:
+                    a = a.text + "'"
+                b = soup.find(id="commentaire").find_all("td")[2].text
+                self.MatchCanvas.itemconfigure("bg" + str(j), fill="#E5E4E1")
+                self.MatchCanvas.itemconfigure("commentaire" + str(j), text=a + " : " + b)
+        print("Commentaires mis à jour")
+        self.afters["commentaries"] = self.after(60000, self.reload_match_commentaries)
+        self.after_blocked["commentaries"] = False
+
+    def reload_match_timer(self):
+        self.after_blocked["timer"] = True
+        for j in range(self.nb_matches):
+            match_page = requests.get(self.match_urls[j])
+            soup = bs4.BeautifulSoup(match_page.text, "html.parser")
+            minute_text = soup.find(class_="status").text
+            if minute_text.split(" ")[0] == "Coup":
+                self.MatchCanvas.itemconfigure("timer" + str(j), text="Coup\nd'envoi",
+                                               font=["Ubuntu",
+                                                     7 + 3 * (self.nb_matches <= 2) + 2 * (self.nb_matches == 1)])
+            elif minute_text == " Mi-temps":
+                self.MatchCanvas.itemconfigure("timer" + str(j), text=minute_text.strip(" ").replace("-", "-\n"),
+                                               font=["Ubuntu",
+                                                     7 + 3 * (self.nb_matches <= 2) + 2 * (self.nb_matches == 1)])
+            elif minute_text == "Match terminé":
+                self.MatchCanvas.itemconfigure("timer" + str(j), text=minute_text.replace(" ", "\n"),
+                                               font=["Ubuntu",
+                                                     7 + 3 * (self.nb_matches <= 2) + 2 * (self.nb_matches == 1)])
+            else:
+                self.MatchCanvas.itemconfigure("timer" + str(j), text=minute_text.strip(" "), font=["Ubuntu", 20 +
+                                               5 * (self.nb_matches <= 2) + 10 * (self.nb_matches == 1)])
+
+        print("Timer mis à jour")
+        self.afters["timer"] = self.after(60000, self.reload_match_timer)
+        self.after_blocked["timer"] = False
+
+    def load_channel_stats(self):
+        self.MatchCanvas.create_text(1416, 45, font=["Ubuntu", 20], tag="Subs")
+        self.reload_channel_stats()
+
+    def reload_channel_stats(self):
+        channel_list_response = self.youtube.channels().list(mine=True, part='statistics').execute()
+        full_text = channel_list_response["items"][0]["statistics"]["subscriberCount"]
+        self.MatchCanvas.itemconfigure("Subs", text=full_text)
+        self.after(65000, self.reload_channel_stats)
+
+    def load_video_stats(self, video_link=""):
+        if video_link[:32] == "https://www.youtube.com/watch?v=":
+            video_id = video_link.split("?v=")[1].split("&ab")[0]
+        else:
+            video_id = video_link.split(".be/")[1]
+        infos = self.youtube.videos().list(id=video_id, part="snippet").execute()
+        if infos['pageInfo']['totalResults'] != 0 and infos['snippet']['liveBroadcastContent'] == 'live':
+            self.videos_infos["video_id"] = video_id
+        else:
+            showerror("Mauvaise URL de stream", "L'url que vous avez rentrée : \n" + video_link +
+                      "\nne correspond pas à un live youtube.")
+            return
+
+        self.update_videos()
+
+        stats = self.youtube.videos().list(id=self.videos_infos["video_id"], part="statistics").execute()
+        video = stats["items"][0]["statistics"]
+
+        self.MatchCanvas.create_text(1416, 115, text=str(video["viewCount"]),
+                                     font=["Ubuntu", 20], tag="Views")
+        self.MatchCanvas.create_text(1416, 185, text=str(video["likeCount"]),
+                                     font=["Ubuntu", 20], tag="Likes")
+
+        self.after(60000, self.reload_video_stats)
+
+    def reload_video_stats(self):
+        stats = self.youtube.videos().list(id=self.videos_infos["video_id"], part="statistics").execute()
+        video = stats["items"][0]["statistics"]
+        self.MatchCanvas.itemconfigure("Views", text=str(video["viewCount"]))
+        self.MatchCanvas.itemconfigure("Likes", text=str(int(video["likeCount"]) + 1))
+
+        self.after(60000, self.reload_video_stats)
+        print("Stats mises à jour")
+
+    def move(self, tag, direction: tuple):
+        if direction[0] * direction[1] == 0:
+            self.MatchCanvas.move(tag, 10 * direction[0], 10 * direction[1])
+        else:
+            current = self.MatchCanvas.itemcget(tag, "font").split(" ")
+            self.MatchCanvas.itemconfigure(tag, font=[current[0], int(current[1]) + direction[0]])
+
+    def play_gif(self, i=1):
+        self.after_blocked["gif"] = True
+        for j in range(self.nb_matches):
+            timer_text = self.MatchCanvas.itemcget("timer" + str(j), "text")
+            if timer_text[-1] == "'":
+                self.MatchCanvas.itemconfigure("gif" + str(j), image=self.gif[i])
+            elif timer_text == "Match terminé":
+                self.MatchCanvas.delete("gif" + str(j))
+
+        if not self.stop_gif:
+            i += 1
+            i %= 55
+            self.afters["gif"] = self.after(2000 // 55, self.play_gif, i)
+        else:
+            self.afters["gif"] = None
+        self.after_blocked["gif"] = False
+
+    def playback(self, filename):
+        mixer.init()
+        mixer.music.load(filename)
+        mixer.music.play(10)
+
+    def destroy(self):
+        if mixer.get_init():
+            mixer.music.stop()
+            mixer.quit()
+        self.master.erase()
+        Toplevel.destroy(self)
+
+    def authenticate(self):
+        with open("ressources/credentials", 'rb') as f:
+            credentials = load(f)
+        return googleapiclient.discovery.build("youtube", "v3", credentials=credentials)
