@@ -80,7 +80,8 @@ class ManagerWindow(Tk):
                 match_page = requests.get(url)
                 soup = bs4.BeautifulSoup(match_page.text, "html.parser")
                 if soup.find("title").text != "Erreur 404":
-                    self.csv_links.append([url, 0])
+                    if not([url, 0] in self.csv_links):
+                        self.csv_links.append([url, 0])
                 else:
                     error_urls.append(url)
                 url = file.readline().strip("\n").split(",")[0].strip("\ufeff")
@@ -664,10 +665,9 @@ class MatchWindow(Toplevel):
                                                font=["Ubuntu",
                                                      7 + 3 * (self.nb_matches <= 2) + 2 * (self.nb_matches == 1)])
             else:
-                self.MatchCanvas.itemconfigure("timer" + str(j), text=minute_text.strip(" "), font=["Ubuntu", 20 +
-                                                                                                    5 * (
-                                                                                                                self.nb_matches <= 2) + 10 * (
-                                                                                                                self.nb_matches == 1)])
+                self.MatchCanvas.itemconfigure("timer" + str(j), text=minute_text.strip(" "),
+                                               font=["Ubuntu", 20 + 5 * (self.nb_matches <= 2)
+                                                     + 10 * (self.nb_matches == 1)])
 
         print("Timer mis à jour")
         self.afters["timer"] = self.after(60000, self.reload_match_timer)
