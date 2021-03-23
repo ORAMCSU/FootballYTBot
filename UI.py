@@ -424,7 +424,7 @@ class MatchWindow(Toplevel):
                 for i in range(2):
                     self.MatchCanvas.create_text(
                         (420 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
-                        300 + (1122 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i, 265 * (j >= 2) + 322,  #-50, +50
+                        300 + (1122 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i, 265 * (j >= 2) + 322,  # -50, +50
                         font=["Ubuntu", 35],
                         fill="white", justify="center", tag="score" + str(2 * j + i))
 
@@ -433,7 +433,7 @@ class MatchWindow(Toplevel):
                                                   width=0, tag="bg" + str(j))
 
                 self.MatchCanvas.create_text((770 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)),
-                                             265 * (j >= 2) + 425, # -30
+                                             265 * (j >= 2) + 425,  # -30
                                              text="", font=["Arial", 8],
                                              fill="black", tag="commentaire" + str(j), width=680)
 
