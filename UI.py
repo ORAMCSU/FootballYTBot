@@ -62,7 +62,7 @@ class ManagerWindow(Tk):
     def erase(self):
         self.MatchWindow = None
 
-    def load_from_csv(self):
+    def load_from_csv(self, launch=True):
 
         for block in self.after_blocked.values():
             if block:
@@ -76,24 +76,36 @@ class ManagerWindow(Tk):
         error_urls = []
         self.csv_links = []
         with open("./ressources/schedule.csv", "r", encoding="utf8") as file:
-            url = file.readline().strip("\n").split(",")[0].strip("\ufeff")
-            while url:
-                match_page = requests.get(url)
+            reader = csv.reader(file, delimiter=",")
+            for row in reader:
+                match_page = requests.get(row[0])
                 soup = bs4.BeautifulSoup(match_page.text, "html.parser")
                 if soup.find("title").text != "Erreur 404":
-                    if not([url, 0] in self.csv_links):
-                        self.csv_links.append([url, 0])
+                    if len(row) == 1:
+                        row.append("2")
+                    if not([row[0], 0, int(row[1])] in self.csv_links):
+                        self.csv_links.append([row[0], 0, int(row[1])])
                 else:
-                    error_urls.append(url)
-                url = file.readline().strip("\n").split(",")[0].strip("\ufeff")
+                    error_urls.append(row[0])
 
         if error_urls:
             showerror("Erreur 404", f"Le(s) match(s) que vous cherchez, {error_urls}, " +
                       "n'existe(nt) pas sur matchendirect.")
 
-        self.timer()
-        self.clean_list()
-        self.csv_match()
+        if launch:
+            self.timer()
+            self.clean_list()
+            self.csv_match()
+
+    def load_to_csv(self, new_urls=None):
+        if not self.csv_links:
+            self.load_from_csv(False)
+        if new_urls:
+            self.csv_links += new_urls
+        with open("ressources/schedule.csv", 'w', newline="") as f:
+            writer = csv.writer(f, delimiter=',')
+            for link in self.csv_links:
+                writer.writerow(link[0::2])
 
     def csv_match(self):
         print("Changement de matchs")
@@ -138,7 +150,7 @@ class ManagerWindow(Tk):
         self.afters["rotate"] = None
         self.csv_links[self.current_csv][1] = -1
         self.check_finished()
-        self.csv_links.sort(key=lambda i: i[1])
+        self.csv_links.sort(key=self.sortlinks_key)
         self.clean_list()
         self.csv_match()
 
@@ -147,7 +159,7 @@ class ManagerWindow(Tk):
         self.afters["free"] = None
         old_list = self.csv_links.copy()
         self.check_finished()
-        self.csv_links.sort(key=lambda i: i[1])
+        self.csv_links.sort(key=self.sortlinks_key)
         self.clean_list()
         if self.csv_links != old_list:
             self.csv_match()
@@ -191,7 +203,14 @@ class ManagerWindow(Tk):
             else:
                 link[1] = -1  # match ongoing
 
-        self.csv_links.sort(key=lambda i: i[1])
+        self.csv_links.sort(key=self.sortlinks_key)
+
+    def sortlinks_key(self, link):
+
+        if link[1] == -1:
+            return link[2]
+        else:
+            return link[1]
 
     def clean_list(self):
 
@@ -200,6 +219,8 @@ class ManagerWindow(Tk):
                 self.csv_links.pop(0)
                 if not self.csv_links:
                     return
+
+            self.load_to_csv()
 
     def destroy(self):
         if self.MatchWindow:
@@ -806,25 +827,20 @@ class SetupFrame(Frame):
         if self.old_number:
             url_list = []
             for i in self.url_entries:
-                if i.get() and i.get()[:40] == "https://www.matchendirect.fr/live-score/" and \
-                        i.get()[-5:] == ".html":
-                    if bs4.BeautifulSoup(requests.get(i.get()).text, "html.parser").find("title")\
+                if i[0].get() and i[0].get()[:40] == "https://www.matchendirect.fr/live-score/" and \
+                        i[0].get()[-5:] == ".html":
+                    if bs4.BeautifulSoup(requests.get(i[0].get()).text, "html.parser").find("title")\
                             .text != "Erreur 404":
-                        url_list.append(i.get())
+                        url_list.append([i[0].get(), 0, i[1].get()])
                     else:
-                        showerror("Erreur 404", f"Le match que vous cherchez, {i.get()}, " +
+                        showerror("Erreur 404", f"Le match que vous cherchez, {i[0].get()}, " +
                                   "n'existe pas sur matchendirect.")
                         return
                 else:
                     showerror("Mauvaises urls", "Vérifiez la validité des urls entrées.")
                     return
-            with open("ressources/schedule.csv", 'r') as f:
-                writer = csv.reader(f, delimiter='\n')
-                for url in writer:
-                    url_list += url
-            with open("ressources/schedule.csv", 'w') as f:
-                writer = csv.writer(f, delimiter='\n')
-                writer.writerow(url_list)
+
+            self.master.load_to_csv(url_list)
 
     def generate_urls(self, _event=None):
         number = int(self.NumberRoll.get())
@@ -832,11 +848,17 @@ class SetupFrame(Frame):
             self.MatchButton.grid_forget()
             if number > self.old_number:
                 for i in range(number - self.old_number):
-                    self.url_entries.append(Entry(self, width=70, bg='#6b6b6b', fg='white'))
-                    self.url_entries[self.old_number + i].grid(row=self.old_number + 2 + i, column=1, padx=10, pady=10)
+                    self.url_entries.append([Entry(self, width=70, bg='#6b6b6b', fg='white'),
+                                             Scale(self, orient="horizontal", from_=2, to=0,
+                                                   length=50, showvalue='yes', sliderlength=20, background="#4E4E4E",
+                                                   bd="0p", fg="red", bg="#4E4E4E", borderwidth=0)])
+                    self.url_entries[self.old_number + i][0].grid(row=self.old_number + 2 + i, column=1, padx=10,
+                                                                  pady=10)
+                    self.url_entries[self.old_number + i][1].grid(row=self.old_number + 2 + i, column=0)
             else:
                 for i in range(self.old_number - number):
-                    self.url_entries[number + i].destroy()
+                    self.url_entries[number + i][0].destroy()
+                    self.url_entries[number + i][1].destroy()
                 self.url_entries = self.url_entries[:number]
 
             self.old_number = number
@@ -849,13 +871,13 @@ class SetupFrame(Frame):
         if self.old_number:
             url_list = []
             for i in self.url_entries:
-                if i.get() and i.get()[:40] == "https://www.matchendirect.fr/live-score/" and \
-                        i.get()[-5:] == ".html":
-                    if bs4.BeautifulSoup(requests.get(i.get()).text, "html.parser").find("title")\
+                if i[0].get() and i[0].get()[:40] == "https://www.matchendirect.fr/live-score/" and \
+                        i[0].get()[-5:] == ".html":
+                    if bs4.BeautifulSoup(requests.get(i[0].get()).text, "html.parser").find("title")\
                             .text != "Erreur 404":
-                        url_list.append(i.get())
+                        url_list.append(i[0].get())
                     else:
-                        showerror("Erreur 404", f"Le match que vous cherchez, {i.get()}, " +
+                        showerror("Erreur 404", f"Le match que vous cherchez, {i[0].get()}, " +
                                   "n'existe pas sur matchendirect.")
                         return
                 else:
