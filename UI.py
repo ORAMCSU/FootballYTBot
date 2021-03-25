@@ -24,10 +24,13 @@ class ManagerWindow(Tk):
         self.configure(bg='#4E4E4E')
 
         self.MainFrame = SetupFrame(self, width=900, height=700, bg='#4E4E4E')
-        self.StreamFrame = EditFrame(self, width=900, height=200, bg='#4E4E4E')
+        self.YtFrame = YoutubeFrame(self, width=900, height=200, bg='#4E4E4E')
+        self.StreamFrame = EditFrame(self, bg='#4E4E4E')
 
         self.MainFrame.grid(row=0, column=0)
-        self.StreamFrame.grid(row=1, column=0)
+        self.YtFrame.grid(row=1, column=0)
+        self.StreamFrame.grid(row=0, column=2, rowspan=2)
+        Separator(self, orient="vertical").grid(row=0, column=1, rowspan=2, sticky="ns", padx=4)
 
         self.csv_links = []
         self.current_csv = 0
@@ -49,6 +52,10 @@ class ManagerWindow(Tk):
     def move(self, tag, direction):
 
         self.MatchWindow.move(tag, direction)
+
+    def define_user_comment(self, color="black", text=""):
+
+        self.MatchWindow.define_user_comment(color, text)
 
     def load_video(self, video_url):
         self.MatchWindow.load_video_stats(video_url)
@@ -636,6 +643,14 @@ class MatchWindow(Toplevel):
         if self.displayed_championnat:
             self.MatchCanvas.create_image(770, 120, image=self.displayed_championnat, tag="champ")
 
+    def define_user_comment(self, color="black", text=""):
+        if text:
+            self.MatchCanvas.create_rectangle(370, 820, 1170, 860, fill="white", width=0, tag="white_defined_bg")
+            self.MatchCanvas.create_text(770, 840, text=text, fill=color, font=["Ubuntu", 18], tag="defined_text")
+        else:
+            self.MatchCanvas.delete("white_defined_bg")
+            self.MatchCanvas.delete("defined_text")
+
     def reload_match_score(self):
         self.after_blocked["scores"] = True
         for j in range(self.nb_matches):
@@ -881,7 +896,7 @@ class SetupFrame(Frame):
         self.master.load_from_csv()
 
 
-class EditFrame(Frame):
+class YoutubeFrame(Frame):
 
     def __init__(self, master: ManagerWindow, **kwargs):
         Frame.__init__(self, master, kwargs)
@@ -902,32 +917,24 @@ class EditFrame(Frame):
         self.MusicButton = Button(self, text="Choix Musique", command=self.select_playback, bg='#4E4E4E', fg='white')
         self.MusicPlay = Button(self, text="Jouer Musique", command=self.launch_playback, bg='#4E4E4E', fg='white')
 
-        self.SubFrame = Frame(self, bg='#4E4E4E')
-
-        Separator(self, orient="horizontal").grid(row=0, column=0, columnspan=3, sticky="we", pady=4)
+        Separator(self, orient="horizontal").grid(row=0, column=0, columnspan=3, sticky="we", pady=4, padx=2)
         self.ColorPicker.grid(row=1, column=0, padx=10, pady=10)
         self.DefinedText.grid(row=1, column=1, padx=10, pady=10)
         self.DisplayButton.grid(row=1, column=2, padx=10, pady=10)
-        Separator(self, orient="horizontal").grid(row=0, column=0, columnspan=3, sticky="we", pady=4)
         Label(self, text="Url du stream: ", width=20, bg='#4E4E4E', fg='white').grid(row=2, column=0)
         self.VideoEntry.grid(row=2, column=1, padx=10, pady=10)
         self.VideoButton.grid(row=2, column=2, padx=10, pady=10)
         self.MusicButton.grid(row=3, column=0, padx=10, pady=10)
         self.MusicPlay.grid(row=3, column=1, padx=10, pady=10)
-        self.SubFrame.grid(row=4, column=0, columnspan=3)
 
     def display_text(self):
-        if self.master.MatchWindow and self.DefinedText.get() != "" and self.displayed == 0:
+        if self.master.is_stream_on() and self.DefinedText.get() != "" and self.displayed == 0:
             self.DisplayButton.config(text="Supprimer message")
-            self.master.MatchWindow.MatchCanvas.create_rectangle(370, 820, 1170, 860, fill="white", width=0,
-                                                                 tag="white_defined_bg")
-            self.master.MatchWindow.MatchCanvas.create_text(770, 840, text=self.DefinedText.get(),
-                                                            fill=self.color, font=["Ubuntu", 18], tag="defined_text")
+            self.master.define_user_comment(self.color, self.DefinedText.get())
             self.displayed = 1
         elif self.displayed == 1:
             self.DisplayButton.config(text="Afficher message")
-            self.master.MatchWindow.MatchCanvas.delete("white_defined_bg")
-            self.master.MatchWindow.MatchCanvas.delete("defined_text")
+            self.master.define_user_comment()
             self.displayed = 0
 
     def choose_color(self):
@@ -943,10 +950,6 @@ class EditFrame(Frame):
                 showerror("Mauvaise URL de vidéo.", f"L'url renseignée \"{self.VideoEntry.get()}\" " +
                           "n'est pas un lien youtube valable.")
 
-    def move(self, tag, direction):
-
-        self.master.move(tag, direction)
-
     def select_playback(self):
         self.musicfile = askopenfilename(initialdir="./ressources/", filetypes=[("Tout audio", (".mp3", ".ogg",
                                                                                                 ".wav")),
@@ -958,62 +961,74 @@ class EditFrame(Frame):
             if self.musicfile:
                 self.master.launch_playback(self.musicfile)
 
+
+class EditFrame(Frame):
+
+    def __init__(self, master: ManagerWindow, **kwargs):
+        Frame.__init__(self, master, kwargs)
+        self.nb_matches = 0
+        self.master = master
+
+    def move(self, tag, direction):
+
+        self.master.move(tag, direction)
+
     def load_edit(self, val):
         self.nb_matches = val
 
-        for i in self.SubFrame.grid_slaves():
+        for i in self.grid_slaves():
             i.destroy()
 
-        Separator(self.SubFrame, orient="horizontal").grid(row=0, column=0, columnspan=20, sticky="we", pady=4)
+        Separator(self, orient="horizontal").grid(row=0, column=0, columnspan=20, sticky="we", pady=4)
 
         for i in range(self.nb_matches):
-            Label(self.SubFrame, text="Match " + str(i + 1),
+            Label(self, text="Match " + str(i + 1),
                   bg='#4E4E4E', fg='white').grid(row=3 * i + 1, column=1, rowspan=2, padx=10, pady=10)
-            Separator(self.SubFrame, orient="vertical").grid(row=3 * i + 1, column=2, rowspan=2,
-                                                             sticky="ns", padx=10, pady=4)
-            Label(self.SubFrame, text="Timer :",
+            Separator(self, orient="vertical").grid(row=3 * i + 1, column=2, rowspan=2,
+                                                    sticky="ns", padx=10, pady=4)
+            Label(self, text="Timer :",
                   bg='#4E4E4E', fg='white').grid(row=3 * i + 1, column=3, rowspan=2, padx=10, pady=10)
-            Button(self.SubFrame, text="\U000025C0", fg='white',
+            Button(self, text="\U000025C0", fg='white',
                    command=partial(self.move, "timer" + str(i), (-1, 0)),
                    bg='#4E4E4E').grid(row=3 * i + 1, column=4, rowspan=2, padx=5, pady=10, sticky='e')
-            Button(self.SubFrame, text="\U000025B6", fg='white',
+            Button(self, text="\U000025B6", fg='white',
                    command=partial(self.move, "timer" + str(i), (1, 0)),
                    bg='#4E4E4E').grid(row=3 * i + 1, column=6, rowspan=2, padx=5, pady=10, sticky='w')
-            Button(self.SubFrame, text="\U000025B2", fg='white',
+            Button(self, text="\U000025B2", fg='white',
                    command=partial(self.move, "timer" + str(i), (0, -1)),
                    bg='#4E4E4E').grid(row=3 * i + 1, column=5, padx=5, pady=10)
-            Button(self.SubFrame, text="\U000025BC", fg='white',
+            Button(self, text="\U000025BC", fg='white',
                    command=partial(self.move, "timer" + str(i), (0, 1)),
                    bg='#4E4E4E').grid(row=3 * i + 2, column=5, padx=5, pady=10)
-            Button(self.SubFrame, text="\U000025B2", fg='white',
+            Button(self, text="\U000025B2", fg='white',
                    command=partial(self.move, "timer" + str(i), (1, 1)),
                    bg='#4E4E4E').grid(row=3 * i + 1, column=7, padx=10, pady=10)
-            Button(self.SubFrame, text="\U000025BC", fg='white',
+            Button(self, text="\U000025BC", fg='white',
                    command=partial(self.move, "timer" + str(i), (-1, -1)),
                    bg='#4E4E4E').grid(row=3 * i + 2, column=7, padx=10, pady=10)
-            Separator(self.SubFrame, orient="horizontal").grid(row=3 * i + 3, column=0, columnspan=20,
-                                                               sticky="we", pady=4)
+            Separator(self, orient="horizontal").grid(row=3 * i + 3, column=0, columnspan=20,
+                                                      sticky="we", pady=4)
 
             for j in range(2):
-                Separator(self.SubFrame, orient="vertical").grid(row=3 * i + 1, column=6 * (j + 1) + 2, rowspan=2,
-                                                                 sticky="ns", padx=10, pady=4)
-                Label(self.SubFrame, text="Equipe " + str(j + 1) + " :",
+                Separator(self, orient="vertical").grid(row=3 * i + 1, column=6 * (j + 1) + 2, rowspan=2,
+                                                        sticky="ns", padx=10, pady=4)
+                Label(self, text="Equipe " + str(j + 1) + " :",
                       bg='#4E4E4E', fg='white').grid(row=3 * i + 1, column=6 * (j + 1) + 3, rowspan=2, padx=10, pady=10)
-                Button(self.SubFrame, text="\U000025C0", fg='white',
+                Button(self, text="\U000025C0", fg='white',
                        command=partial(self.move, "TeamName" + str(2 * i + j), (-1, 0)),
                        bg='#4E4E4E').grid(row=3 * i + 1, column=6 * (j + 1) + 4, rowspan=2, padx=5, pady=10)
-                Button(self.SubFrame, text="\U000025B6", fg='white',
+                Button(self, text="\U000025B6", fg='white',
                        command=partial(self.move, "TeamName" + str(2 * i + j), (1, 0)),
                        bg='#4E4E4E').grid(row=3 * i + 1, column=6 * (j + 2), rowspan=2, padx=5, pady=10)
-                Button(self.SubFrame, text="\U000025B2", fg='white',
+                Button(self, text="\U000025B2", fg='white',
                        command=partial(self.move, "TeamName" + str(2 * i + j), (0, -1)),
                        bg='#4E4E4E').grid(row=3 * i + 1, column=6 * (j + 1) + 5, padx=5, pady=10)
-                Button(self.SubFrame, text="\U000025BC", fg='white',
+                Button(self, text="\U000025BC", fg='white',
                        command=partial(self.move, "TeamName" + str(2 * i + j), (0, 1)),
                        bg='#4E4E4E').grid(row=3 * i + 2, column=6 * (j + 1) + 5, padx=5, pady=10)
-                Button(self.SubFrame, text="\U000025B2", fg='white',
+                Button(self, text="\U000025B2", fg='white',
                        command=partial(self.move, "TeamName" + str(2 * i + j), (1, 1)),
                        bg='#4E4E4E').grid(row=3 * i + 1, column=6 * (j + 2) + 1, padx=10, pady=10)
-                Button(self.SubFrame, text="\U000025BC", fg='white',
+                Button(self, text="\U000025BC", fg='white',
                        command=partial(self.move, "TeamName" + str(2 * i + j), (-1, -1)),
                        bg='#4E4E4E').grid(row=3 * i + 2, column=6 * (j + 2) + 1, padx=10, pady=10)
