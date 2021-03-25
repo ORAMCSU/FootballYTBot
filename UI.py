@@ -241,7 +241,6 @@ class MatchWindow(Toplevel):
         self.title("Match Stream")
         self.match_urls = []
         self.nb_matches = -1
-        self.gif = []
         self.stop_gif = False
         self.afters = {"scores": None, "timer": None, "commentaries": None, "gif": None}
         self.after_blocked = {"scores": False, "timer": False, "commentaries": False, "gif": False}
@@ -262,7 +261,6 @@ class MatchWindow(Toplevel):
         self.displayed_teamlogos = []
         self.displayed_championnat = None
 
-        self.load_gif()
         self.load_bases()
         self.load_channel_stats()
         self.change_match_number(nb_matches, url_list, empty_text)
@@ -347,17 +345,8 @@ class MatchWindow(Toplevel):
                 self.MatchCanvas.create_image(770 - 375 * (i == 1) + 375 * (i == 2), 265 * (i > 0) + 300,
                                               image=self.displayed_black, tag="Black" + str(i))
             elif self.nb_matches == 4:
-                self.MatchCanvas.create_image(770 - 375 * (i % 2 == 1) + 375 * (i % 2 == 0), 265 * (i > 1) + 300,
+                self.MatchCanvas.create_image(770 - 375 * (i % 2 == 0) + 375 * (i % 2 == 1), 265 * (i > 1) + 300,
                                               image=self.displayed_black, tag="Black" + str(i))
-
-    def load_gif(self):
-        gifimg = PIL.Image.open("./ressources/images/gif-eye.gif")
-
-        for i in range(55):
-            gifimg.seek(i)
-            self.gif.append(PIL.ImageTk.PhotoImage(gifimg.copy().resize((30, 30))))
-
-        gifimg.close()
 
     def load_match_stats(self):
 
@@ -383,7 +372,7 @@ class MatchWindow(Toplevel):
                                                                                                          str(2 * j + i))
 
                 self.MatchCanvas.create_text(771, 448, justify="center", tag="timer" + str(j))
-                self.MatchCanvas.create_image(720, 448, tag="gif" + str(j))
+                self.MatchCanvas.create_oval(710, 438, 730, 458, fill="green", tag="gif" + str(j))
 
             elif self.nb_matches == 2:
                 for i in range(2):
@@ -406,7 +395,7 @@ class MatchWindow(Toplevel):
                                                   tag="Teamlogo" + str(2 * j + i))
 
                 self.MatchCanvas.create_text(771, 277 + 300 * j, justify="center", tag="timer" + str(j))
-                self.MatchCanvas.create_image(725, 277 + 300 * j, tag="gif" + str(j))
+                self.MatchCanvas.create_oval(715, 267 + 300 * j, 735, 287 + 300 * j, fill="green", tag="gif" + str(j))
 
             elif self.nb_matches == 3:
                 for i in range(2):
@@ -436,8 +425,9 @@ class MatchWindow(Toplevel):
 
                 self.MatchCanvas.create_text(771 - 375 * (j == 1) + 375 * (j == 2), 263 + 265 * (j >= 1),
                                              justify="center", tag="timer" + str(j))
-                self.MatchCanvas.create_image(730 - 375 * (j == 1) + 375 * (j == 2), 263 + 265 * (j >= 1),
-                                              tag="gif" + str(j))
+                self.MatchCanvas.create_oval(710 - 375 * (j == 1) + 375 * (j == 2), 253 + 265 * (j >= 1),
+                                             730 - 375 * (j == 1) + 375 * (j == 2), 273 + 265 * (j >= 1),
+                                             fill="green", tag="gif" + str(j))
 
             elif self.nb_matches == 4:
                 for i in range(2):
@@ -471,8 +461,9 @@ class MatchWindow(Toplevel):
 
                 self.MatchCanvas.create_text(771 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 263 + 265 * (j >= 2),
                                              justify="center", tag="timer" + str(j))
-                self.MatchCanvas.create_image(730 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 213 + 265 * (j >= 2),
-                                              tag="gif" + str(j))
+                self.MatchCanvas.create_oval(720 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 253 + 265 * (j >= 2),
+                                             740 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 273 + 265 * (j >= 2),
+                                             fill="green", tag="gif" + str(j))
         self.load_match_teams()
         self.reload_match_score()
         self.reload_match_commentaries()
@@ -529,7 +520,7 @@ class MatchWindow(Toplevel):
         elif new_number == 0:
             self.load_empty(empty_text)
 
-        # self.play_gif(0)
+        self.play_gif()
 
     def load_empty(self, empty_text=""):
         if not empty_text:
@@ -755,19 +746,16 @@ class MatchWindow(Toplevel):
             current = self.MatchCanvas.itemcget(tag, "font").split(" ")
             self.MatchCanvas.itemconfigure(tag, font=[current[0], int(current[1]) + direction[0]])
 
-    def play_gif(self, i=1):
+    def play_gif(self, i=True):
         self.after_blocked["gif"] = True
         for j in range(self.nb_matches):
             timer_text = self.MatchCanvas.itemcget("timer" + str(j), "text")
-            if timer_text[-1] == "'":
-                self.MatchCanvas.itemconfigure("gif" + str(j), image=self.gif[i])
-            elif timer_text == "Match terminé":
-                self.MatchCanvas.delete("gif" + str(j))
-
+            if timer_text[-1] == "'" and i:
+                self.MatchCanvas.tag_raise("gif"+str(j), "Black"+str(j))
+            else:
+                self.MatchCanvas.tag_lower("gif"+str(j), "Black"+str(j))
         if not self.stop_gif:
-            i += 1
-            i %= 55
-            self.afters["gif"] = self.after(2000 // 55, self.play_gif, i)
+            self.afters["gif"] = self.after(1000, self.play_gif, not i)
         else:
             self.afters["gif"] = None
         self.after_blocked["gif"] = False
