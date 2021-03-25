@@ -562,7 +562,7 @@ class MatchWindow(Toplevel):
                 tag = div.text[1:-1].lower()
                 list_tags.append(tag)
                 if i == 0:
-                    match_title += "-"
+                    match_title += " - "
                     match_head_description += " - "
                 i += 1
 
@@ -694,7 +694,8 @@ class MatchWindow(Toplevel):
         else:
             video_id = video_link.split(".be/")[1]
         infos = self.youtube.videos().list(id=video_id, part="snippet").execute()
-        if infos['pageInfo']['totalResults'] != 0 and infos['snippet']['liveBroadcastContent'] == 'live':
+        print(infos)
+        if infos['pageInfo']['totalResults'] != 0 and infos['items'][0]['snippet']['liveBroadcastContent'] == 'live':
             self.videos_infos["video_id"] = video_id
         else:
             showerror("Mauvaise URL de stream", "L'url que vous avez rentrée : \n" + video_link +
@@ -922,7 +923,7 @@ class EditFrame(Frame):
 
         if self.master.is_stream_on():
             if self.VideoEntry.get() and (self.VideoEntry.get()[:32] == "https://www.youtube.com/watch?v=" or
-                                          self.VideoEntry.get()[:21] == "https://www.youtu.be/"):
+                                          self.VideoEntry.get()[:17] == "https://youtu.be/"):
                 self.master.load_video(self.VideoEntry.get())
             else:
                 showerror("Mauvaise URL de vidéo.", f"L'url renseignée \"{self.VideoEntry.get()}\" " +
