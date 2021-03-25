@@ -97,12 +97,13 @@ class ManagerWindow(Tk):
             self.clean_list()
             self.csv_match()
 
-    def load_to_csv(self, new_urls=None):
-        if not self.csv_links:
+    def load_to_csv(self, new_urls=None, empty=False):
+        if not self.csv_links and not empty:
             self.load_from_csv(False)
         if new_urls:
             self.csv_links += new_urls
         with open("ressources/schedule.csv", 'w', newline="") as f:
+            print("ui")
             writer = csv.writer(f, delimiter=',')
             for link in self.csv_links:
                 writer.writerow(link[0::2])
@@ -186,6 +187,8 @@ class ManagerWindow(Tk):
             match_page = requests.get(link[0])
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
             minute_text = soup.find(class_="status").text
+            print(minute_text)
+            print("oui")
             if minute_text.split(" ")[0] == "Coup":
                 start = soup.find("div", class_="info1").text.split("|")[0]
                 start = start.split(" ")[1:4] + [start.split(" ")[-2]]
@@ -198,7 +201,7 @@ class ManagerWindow(Tk):
                     link[1] = cast_time
             elif minute_text == " Mi-temps":
                 link[1] = -1  # match ongoing
-            elif minute_text == "Match terminé":
+            elif minute_text in ["Match terminé", "Match annulé", "0"] or minute_text[:6] in [" (déla", "Report"]:
                 link[1] = -2
             else:
                 link[1] = -1  # match ongoing
@@ -218,6 +221,7 @@ class ManagerWindow(Tk):
             while self.csv_links[0][1] == -2:
                 self.csv_links.pop(0)
                 if not self.csv_links:
+                    self.load_to_csv(empty=True)
                     return
 
             self.load_to_csv()
@@ -821,7 +825,7 @@ class SetupFrame(Frame):
             self.MatchButton.config(text="Lancer le suivi", command=self.launch_match)
             self.NumberRoll.config(to=4)
             self.generate_urls()
-            self.Schedule.grid_remove()
+            self.Schedule.grid_forget()
 
     def load_to_csv(self):
         if self.old_number:
