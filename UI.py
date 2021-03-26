@@ -40,6 +40,13 @@ class ManagerWindow(Tk):
         self.MatchWindow = None
 
     def launch_match(self, nb_matches, url_list, empty_text=""):
+        """
+        Method that displays the stream window if it is not already on, updates it otherwise.
+        :param nb_matches: int number of simultaneous matches to display (from 1 to 4)
+        :param url_list: list containing the urls to the specific matches
+        :param empty_text: text to display if no match is left
+        :return: None
+        """
 
         if not self.MatchWindow:
             self.MatchWindow = MatchWindow(master=self, nb_matches=nb_matches, url_list=url_list, empty_text=empty_text)
@@ -795,14 +802,17 @@ class MatchWindow(Toplevel):
 
 
 class SetupFrame(Frame):
-
+    """
+    Frmae to set up the MatchWindow and launch it.
+    """
     def __init__(self, master: ManagerWindow, **kwargs):
         Frame.__init__(self, master, kwargs)
         self.master = master
         self.old_number = 0
         self.url_entries = []
-        self.cb = 0
+        self.auto_on = False
 
+        # number of matches and auto mode
         self.ModeButton = Checkbutton(self, text="Mode Automatique", command=self.change_mode, bg='#4E4E4E')
         self.MatchButton = Button(self, text="Lancer le suivi", command=self.launch_match, bg='#4E4E4E', fg='white')
         self.NumberRoll = Spinbox(self, from_=1, to=4, bg='#4E4E4E', fg='white')
@@ -817,28 +827,37 @@ class SetupFrame(Frame):
         self.generate_urls()
 
     def change_mode(self):
-        if self.cb == 0:
-            self.cb = 1
+        """
+        Method called to switch between automatic scheduled display mode and manual display mode
+        :return: None
+        """
+        if not self.auto_on:
+            self.auto_on = True
             self.MatchButton.configure(text="Ajouter au csv", command=self.load_to_csv)
             self.NumberRoll.config(to=10)
             self.generate_urls()
             self.Schedule.grid(row=self.old_number + 2, column=2)
         else:
-            self.cb = 0
+            self.auto_on = False
             self.MatchButton.config(text="Lancer le suivi", command=self.launch_match)
             self.NumberRoll.config(to=4)
             self.generate_urls()
             self.Schedule.grid_forget()
 
     def load_to_csv(self):
+        """
+        Method used to add match urls to the current csv file.
+        :return: None
+        """
         if self.old_number:
             url_list = []
             for i in self.url_entries:
+                # verify that the url leads to the right website. Otherwise, add it to the list of wrong urls
                 if i[0].get() and i[0].get()[:40] == "https://www.matchendirect.fr/live-score/" and \
                         i[0].get()[-5:] == ".html":
                     if bs4.BeautifulSoup(requests.get(i[0].get()).text, "html.parser").find("title")\
                             .text != "Erreur 404":
-                        url_list.append([i[0].get(), 0, i[1].get()])
+                        url_list.append([i[0].get(), 0, i[1].get()])  # [url, 0, priority]
                     else:
                         showerror("Erreur 404", f"Le match que vous cherchez, {i[0].get()}, " +
                                   "n'existe pas sur matchendirect.")
@@ -847,9 +866,15 @@ class SetupFrame(Frame):
                     showerror("Mauvaises urls", "Vérifiez la validité des urls entrées.")
                     return
 
+            # call the master method to add the urls to the csv
             self.master.load_to_csv(url_list)
 
     def generate_urls(self, _event=None):
+        """
+        Method that generates the entries for the match urls.
+        :param _event: in case method is called from a bind method.
+        :return: None
+        """
         number = int(self.NumberRoll.get())
         if self.old_number != number:
             self.MatchButton.grid_forget()
@@ -871,13 +896,21 @@ class SetupFrame(Frame):
             self.old_number = number
 
             self.MatchButton.grid(row=self.old_number + 2, column=1, padx=10, pady=10)
-            if self.cb == 1:
+
+            # if automatic mode is enabled, display the button to schedule matches
+            if self.auto_on:
                 self.Schedule.grid(row=self.old_number + 2, column=2, padx=10, pady=10)
 
     def launch_match(self, _event=None):
+        """
+        Method that directly launches a MatchWindow with specific matches
+        :param _event: in case method is called by a bind method
+        :return: None
+        """
         if self.old_number:
             url_list = []
             for i in self.url_entries:
+                # Check if url is valid and prepares to launch it. Otherwise raise an error window.
                 if i[0].get() and i[0].get()[:40] == "https://www.matchendirect.fr/live-score/" and \
                         i[0].get()[-5:] == ".html":
                     if bs4.BeautifulSoup(requests.get(i[0].get()).text, "html.parser").find("title")\
@@ -890,30 +923,43 @@ class SetupFrame(Frame):
                 else:
                     showerror("Mauvaises urls", "Vérifiez la validité des urls entrées.")
                     return
+
+            # launch the match with the specified urls
             self.master.launch_match(nb_matches=self.old_number, url_list=url_list)
 
     def launch_schedule(self):
+        """
+        Method that launches the scheduled display of matches. Calls the masters method loading the csv file
+        :return: None
+        """
         self.master.load_from_csv()
 
 
 class YoutubeFrame(Frame):
+    """
+    Frame that handles all the parts of the MatchWindow related to the livestream.
+    """
 
     def __init__(self, master: ManagerWindow, **kwargs):
         Frame.__init__(self, master, kwargs)
         self.nb_matches = 0
-        self.master = master
-        self.musicfile = ""
-        self.displayed = 0
+        self.master = master  # master is set again to assert its type as ManagerWindow
 
+        # Widgets and attributes for the User Defined Text
         self.color = 'black'
+        self.displayed = False  # whether the User Defined Text is already defined
         self.ColorPicker = Button(self, text="Couleur", command=self.choose_color, bg='#4E4E4E', fg='white')
         self.DefinedText = Entry(self, width=70, bg='#6b6b6b', fg='white')
         self.DisplayButton = Button(self, text="Afficher Message", command=self.display_text, bg='#4E4E4E', fg='white')
 
+        # Widgets for the videostream url
+        Label(self, text="Url du stream: ", width=20, bg='#4E4E4E', fg='white').grid(row=2, column=0)
         self.VideoEntry = Entry(self, width=70, bg='#6b6b6b', fg='white')
         self.VideoButton = Button(self, text="Charger", command=self.load_video, width=10, bg='#4E4E4E',
                                   fg='white')
 
+        # Widgets and attribute for the audio playback
+        self.musicfile = ""  # name of the audio file
         self.MusicButton = Button(self, text="Choix Musique", command=self.select_playback, bg='#4E4E4E', fg='white')
         self.MusicPlay = Button(self, text="Jouer Musique", command=self.launch_playback, bg='#4E4E4E', fg='white')
 
@@ -921,28 +967,44 @@ class YoutubeFrame(Frame):
         self.ColorPicker.grid(row=1, column=0, padx=10, pady=10)
         self.DefinedText.grid(row=1, column=1, padx=10, pady=10)
         self.DisplayButton.grid(row=1, column=2, padx=10, pady=10)
-        Label(self, text="Url du stream: ", width=20, bg='#4E4E4E', fg='white').grid(row=2, column=0)
         self.VideoEntry.grid(row=2, column=1, padx=10, pady=10)
         self.VideoButton.grid(row=2, column=2, padx=10, pady=10)
         self.MusicButton.grid(row=3, column=0, padx=10, pady=10)
         self.MusicPlay.grid(row=3, column=1, padx=10, pady=10)
 
     def display_text(self):
-        if self.master.is_stream_on() and self.DefinedText.get() != "" and self.displayed == 0:
+        """
+        Method that takes the string written in DefinedText to display it on the MatchWindow as the User Defined Text.
+        :return: None
+        """
+
+        # check that stream is active and the user has something to say
+        if self.master.is_stream_on() and self.DefinedText.get() != "" and not self.displayed:
             self.DisplayButton.config(text="Supprimer message")
             self.master.define_user_comment(self.color, self.DefinedText.get())
-            self.displayed = 1
-        elif self.displayed == 1:
+            self.displayed = True
+
+        # if message is already displayed, ask to remove it
+        elif self.displayed:
             self.DisplayButton.config(text="Afficher message")
             self.master.define_user_comment()
-            self.displayed = 0
+            self.displayed = False
 
     def choose_color(self):
+        """
+        Method to select the color of the User Defined Commentary.
+        :return: None
+        """
         self.color = colorchooser.askcolor(title="Choose color")[1]
 
     def load_video(self):
+        """
+        Method that takes the url of the current stream written in VideoEntry and passes it to the MatchWindow
+        :return: None
+        """
 
         if self.master.is_stream_on():
+            # Verify if the given url is a youtube link. Otherwise, display an error window.
             if self.VideoEntry.get() and (self.VideoEntry.get()[:32] == "https://www.youtube.com/watch?v=" or
                                           self.VideoEntry.get()[:17] == "https://youtu.be/"):
                 self.master.load_video(self.VideoEntry.get())
@@ -951,37 +1013,68 @@ class YoutubeFrame(Frame):
                           "n'est pas un lien youtube valable.")
 
     def select_playback(self):
+        """
+        Method to choose the audio file to play on the stream.
+        :return: None
+        """
         self.musicfile = askopenfilename(initialdir="./ressources/", filetypes=[("Tout audio", (".mp3", ".ogg",
                                                                                                 ".wav")),
                                                                                 ("Fichier compressé", ".mp3"),
                                                                                 ('Audio non compressé', ".wav")])
 
     def launch_playback(self):
+        """
+        Method that gives the order to start playing the audio file chosen with select_playback.
+        :return: None
+        """
         if self.master.is_stream_on():
             if self.musicfile:
                 self.master.launch_playback(self.musicfile)
 
 
 class EditFrame(Frame):
+    """
+    Frame for the handling of specific critical textual parts in the MatchWindow
+    """
 
     def __init__(self, master: ManagerWindow, **kwargs):
+        """
+        New __init__ function, more precise about the master attribute, alike on other aspects
+        :param master: Widget containing this widget
+        :param kwargs: all typical Frame arguments
+        """
         Frame.__init__(self, master, kwargs)
-        self.nb_matches = 0
+        self.nb_matches = 0  # number of matches currently displayed
         self.master = master
 
     def move(self, tag, direction):
+        """
+        Method triggered to move an element of the MatchCanvas of the MatchWindow
+        :param tag: string, tag of the element to move
+        :param direction: tuple of 2 int indicating how to move the element on the 2D axes. Same numbers indicated font
+        size change
+        :return: None
+        """
 
         self.master.move(tag, direction)
 
-    def load_edit(self, val):
-        self.nb_matches = val
+    def load_edit(self, matches_number):
+        """
+        Method that loads all the buttons to move Team Names and Timers (and reduce font size). To call every time
+        matches are changed.
+        :param matches_number: number of matches to be displayed on the MatchWindow
+        :return: None
+        """
+        self.nb_matches = matches_number
 
+        # clean everything
         for i in self.grid_slaves():
             i.destroy()
 
         Separator(self, orient="horizontal").grid(row=0, column=0, columnspan=20, sticky="we", pady=4)
 
         for i in range(self.nb_matches):
+            # for each match, display the buttons to adjust the timer
             Label(self, text="Match " + str(i + 1),
                   bg='#4E4E4E', fg='white').grid(row=3 * i + 1, column=1, rowspan=2, padx=10, pady=10)
             Separator(self, orient="vertical").grid(row=3 * i + 1, column=2, rowspan=2,
@@ -1010,6 +1103,7 @@ class EditFrame(Frame):
                                                       sticky="we", pady=4)
 
             for j in range(2):
+                # for each team of the match, display the buttons to adjust the name of the team
                 Separator(self, orient="vertical").grid(row=3 * i + 1, column=6 * (j + 1) + 2, rowspan=2,
                                                         sticky="ns", padx=10, pady=4)
                 Label(self, text="Equipe " + str(j + 1) + " :",
