@@ -16,6 +16,9 @@ from time import localtime, strptime, mktime, time
 
 
 class ManagerWindow(Tk):
+    """
+    Window used to control the livestream.
+    """
 
     def __init__(self):
 
@@ -41,13 +44,14 @@ class ManagerWindow(Tk):
 
     def launch_match(self, nb_matches, url_list, empty_text=""):
         """
-        Method that displays the stream window if it is not already on, updates it otherwise.
+        Method that displays the stream window if it is not already on, updates it otherwise. Also updates the EditFrame
         :param nb_matches: int number of simultaneous matches to display (from 1 to 4)
         :param url_list: list containing the urls to the specific matches
         :param empty_text: text to display if no match is left
         :return: None
         """
 
+        # if there is no MatchWindow, create one. Otherwise update the current one.
         if not self.MatchWindow:
             self.MatchWindow = MatchWindow(master=self, nb_matches=nb_matches, url_list=url_list, empty_text=empty_text)
             self.StreamFrame.load_edit(nb_matches)
@@ -57,27 +61,60 @@ class ManagerWindow(Tk):
             self.StreamFrame.load_edit(nb_matches)
 
     def move(self, tag, direction):
-
+        """
+        Method used as a medium between EditFrame and MatchWindow for moving text parts of the stream.
+        :param tag: string, tag of the item in the canvas.
+        :param direction: tuple of 2 int indicating how to move the element on the 2D axes. Same numbers indicated font
+        size change
+        :return: None
+        """
         self.MatchWindow.move(tag, direction)
 
     def define_user_comment(self, color="black", text=""):
-
+        """
+        Method used as a medium between YoutubeFrame and MatchWindow to generate the Defined User Text.
+        :param color: string indicating the color of the text
+        :param text: text to dislay. Empty indicates the text has to be erased.
+        :return: None
+        """
         self.MatchWindow.define_user_comment(color, text)
 
     def load_video(self, video_url):
+        """
+        Method used as a medium between YoutubeFrame and MatchWindow to load the likes and views of the video.
+        :param video_url: url of the livestream
+        :return: None
+        """
         self.MatchWindow.load_video_stats(video_url)
 
     def launch_playback(self, filename):
+        """
+        Method used as a medium between YoutubeFrame and MatchWindow to play the music selected
+        :param filename:
+        :return: None
+        """
         self.MatchWindow.playback(filename)
 
     def is_stream_on(self):
+        """
+        Method to indicate if the stream window is created
+        :return: boolean indicating if the stream window is already created
+        """
         return not (self.MatchWindow is None)
 
     def erase(self):
+        """
+        Method to erase the reference to the MatchWindow
+        :return: None
+        """
         self.MatchWindow = None
 
     def load_from_csv(self, launch=True):
-
+        """
+        Method called to load the content of the file named schedule.csv
+        :param launch: boolean indicating whether one wants to call launch_match after running the method
+        :return: None
+        """
         for block in self.after_blocked.values():
             if block:
                 self.after(500, self.load_from_csv)
@@ -112,6 +149,13 @@ class ManagerWindow(Tk):
             self.csv_match()
 
     def load_to_csv(self, new_urls=None, empty=False):
+        """
+        Method called to refresh the content of the csv file
+        :param new_urls: list of urls to add to the csv file
+        :param empty: boolean indicating if csv_links is intentionnally empty (False indicates that it has never been
+        loaded)
+        :return: None
+        """
         if not self.csv_links and not empty:
             self.load_from_csv(False)
         if new_urls:
@@ -123,6 +167,10 @@ class ManagerWindow(Tk):
                 writer.writerow(link[0::2])
 
     def csv_match(self):
+        """
+        Method called to prepare to launch a MatchWindow following the schedule.
+        :return: None
+        """
         print("Changement de matchs")
         i = 0
         url_list = []
@@ -143,7 +191,10 @@ class ManagerWindow(Tk):
         self.waiter()
 
     def waiter(self):
-
+        """
+        Method called to shedule future actions concerning the refresh of displayed matches.
+        :return: None
+        """
         now = int(time() // 60)
         if self.current_csv < len(self.csv_links) and self.current_csv < 4:
             if self.csv_links[self.current_csv][1] - now - 5 < 0:
@@ -157,10 +208,16 @@ class ManagerWindow(Tk):
         else:
             self.afters["free"] = self.after(300000, self.free_matches)
 
+        # only liberate the blockers when after calls to either free_matches or rotate_matches are scheduled
         self.after_blocked["rotate"] = False
         self.after_blocked["free"] = False
 
     def rotate_matches(self):
+        """
+        Method called when a new match begins.
+        :return: None
+        """
+        # turn the blocker on to indicate that not cancellation can be made right away
         self.after_blocked["rotate"] = True
         self.afters["rotate"] = None
         self.csv_links[self.current_csv][1] = -1
@@ -170,6 +227,11 @@ class ManagerWindow(Tk):
         self.csv_match()
 
     def free_matches(self):
+        """
+        Method called regularly to remove finished matches from the MatchWindow.
+        :return: None
+        """
+        # turn the blocker on to indicate that not cancellation can be made right away
         self.after_blocked["free"] = True
         self.afters["free"] = None
         old_list = self.csv_links.copy()
@@ -179,10 +241,13 @@ class ManagerWindow(Tk):
         if self.csv_links != old_list:
             self.csv_match()
         else:
-            self.waiter()  # self.after(300000, self.free_matches)
+            self.waiter()  # even if no modification is done to the stream, it is necessary to loop back for checks
 
     def check_finished(self):
-
+        """
+        Method that checks whether there are finished matches into the csv_links list.
+        :return: None
+        """
         for i in range(self.current_csv):
             link = self.csv_links[i]
             match_page = requests.get(link[0])
@@ -192,10 +257,14 @@ class ManagerWindow(Tk):
                 link[1] = -2
 
     def timer(self):
-
+        """
+        Method used to calculate when the matches of csv_links will start. Gives them the time status -1 if the match is
+        ongoing, -2 if it is finished/cancelled.
+        :return: None
+        """
         time_conv = {"janvier": 1, "février": 2, "mars": 3, "avril": 4, "mai": 5, "juin": 6,
                      "juillet": 7, "août": 8, "septembre": 9, "octobre": 10, "novembre": 11, "décembre": 12}
-        now = int(time() // 60)
+        now = int(time() // 60)  # current time in minutes
 
         for link in self.csv_links:
             match_page = requests.get(link[0])
@@ -223,14 +292,21 @@ class ManagerWindow(Tk):
         self.csv_links.sort(key=self.sortlinks_key)
 
     def sortlinks_key(self, link):
-
+        """
+        Method called when sorting the csv_links attribute list
+        :param link: element of the list to move
+        :return: int to use to sort (link[2] is always inferior to link[1] if link[1] is positive)
+        """
         if link[1] == -1:
             return link[2]
         else:
             return link[1]
 
     def clean_list(self):
-
+        """
+        Method called to remove all finished/cancelled matches from the list of matches to display.
+        :return: None
+        """
         if self.csv_links:
             while self.csv_links[0][1] == -2:
                 self.csv_links.pop(0)
@@ -241,12 +317,19 @@ class ManagerWindow(Tk):
             self.load_to_csv()
 
     def destroy(self):
+        """
+        Method handling some problems happening when destroying the Stream Manager before the MatchWindow.
+        :return: None
+        """
         if self.MatchWindow:
             self.MatchWindow.destroy()
         Tk.destroy(self)
 
 
 class MatchWindow(Toplevel):
+    """
+    Window used for the youtube livestream.
+    """
 
     def __init__(self, master: ManagerWindow, nb_matches, url_list=None, empty_text=""):
         Toplevel.__init__(self, master)
@@ -280,7 +363,10 @@ class MatchWindow(Toplevel):
         self.change_match_number(nb_matches, url_list, empty_text)
 
     def update_videos(self):
+        """
 
+        :return: None
+        """
         print(self.videos_infos)
 
         videos_list_response = self.youtube.videos().list(id=self.videos_infos["video_id"], part="snippet").execute()
@@ -295,6 +381,13 @@ class MatchWindow(Toplevel):
             .update(part="snippet", body=dict(snippet=videos_list_snippet, id=self.videos_infos["video_id"])).execute()
 
     def update_video_infos(self, titre="", description=None, tags=None):
+        """
+        Method called to update the informations of the livestream
+        :param titre: new title for the livestream
+        :param description: description to set below the video
+        :param tags: tags to put into the video
+        :return: None
+        """
         self.videos_infos["title"] = titre
         if description:
             self.videos_infos["description"] = description
@@ -302,6 +395,10 @@ class MatchWindow(Toplevel):
             self.videos_infos["tags"] = tags
 
     def load_bases(self):
+        """
+
+        :return: None
+        """
         pil_image = PIL.Image.open("./ressources/images/fond_direct.jpg")
         pil_image2 = pil_image.resize((1536, 864))
         pil_image.close()
@@ -335,7 +432,10 @@ class MatchWindow(Toplevel):
         pil_image2.close()
 
     def load_black(self):
+        """
 
+        :return: None
+        """
         pil_image = PIL.Image.open("./ressources/images/affiche_vierge.png")
 
         if self.nb_matches == 1:
@@ -363,7 +463,10 @@ class MatchWindow(Toplevel):
                                               image=self.displayed_black, tag="Black" + str(i))
 
     def load_match_stats(self):
+        """
 
+        :return: None
+        """
         # font_sizes = ((30, 40, 12, (12, 35)), (22, 40, 10, (10, 25)), (20, 35, 8, (7, 20)), (20, 35, 8, (7, 20)))
 
         for j in range(self.nb_matches):
@@ -484,7 +587,11 @@ class MatchWindow(Toplevel):
         self.reload_match_timer()
 
     def change_matches(self, new_urls):
+        """
 
+        :param new_urls:
+        :return:
+        """
         self.match_urls = new_urls
         self.load_match_teams()
         self.reload_match_score()
@@ -492,6 +599,13 @@ class MatchWindow(Toplevel):
         self.reload_match_timer()
 
     def change_match_number(self, new_number, new_urls, empty_text=""):
+        """
+
+        :param new_number:
+        :param new_urls:
+        :param empty_text:
+        :return:
+        """
         self.stop_gif = True
         for value in self.after_blocked.values():
             if value:
@@ -537,6 +651,11 @@ class MatchWindow(Toplevel):
         self.play_gif()
 
     def load_empty(self, empty_text=""):
+        """
+
+        :param empty_text:
+        :return:
+        """
         if not empty_text:
             self.MatchCanvas.create_rectangle(350, 400, 1190, 560, fill="white", tag="Empty", width=0)
             self.MatchCanvas.create_text(770, 480, width=800, text="C'est fini pour aujourd'hui.\n" +
@@ -556,7 +675,10 @@ class MatchWindow(Toplevel):
                 self.update_videos()
 
     def load_match_teams(self):
+        """
 
+        :return:
+        """
         self.displayed_teamlogos = []
         self.videos_infos["title"] = "[Score en direct]"
         self.displayed_championnat = None
@@ -647,10 +769,20 @@ class MatchWindow(Toplevel):
             self.update_videos()
 
     def display_championnat(self):
+        """
+
+        :return:
+        """
         if self.displayed_championnat:
             self.MatchCanvas.create_image(770, 120, image=self.displayed_championnat, tag="champ")
 
     def define_user_comment(self, color="black", text=""):
+        """
+
+        :param color:
+        :param text:
+        :return:
+        """
         if text:
             self.MatchCanvas.create_rectangle(370, 820, 1170, 860, fill="white", width=0, tag="white_defined_bg")
             self.MatchCanvas.create_text(770, 840, text=text, fill=color, font=["Ubuntu", 18], tag="defined_text")
@@ -659,6 +791,10 @@ class MatchWindow(Toplevel):
             self.MatchCanvas.delete("defined_text")
 
     def reload_match_score(self):
+        """
+
+        :return:
+        """
         self.after_blocked["scores"] = True
         for j in range(self.nb_matches):
             match_page = requests.get(self.match_urls[j])
@@ -672,6 +808,10 @@ class MatchWindow(Toplevel):
         self.after_blocked["scores"] = False
 
     def reload_match_commentaries(self):
+        """
+
+        :return:
+        """
         self.after_blocked["commentaries"] = True
         for j in range(self.nb_matches):
             match_page = requests.get(self.match_urls[j])
@@ -690,6 +830,10 @@ class MatchWindow(Toplevel):
         self.after_blocked["commentaries"] = False
 
     def reload_match_timer(self):
+        """
+
+        :return:
+        """
         self.after_blocked["timer"] = True
         for j in range(self.nb_matches):
             match_page = requests.get(self.match_urls[j])
@@ -717,16 +861,29 @@ class MatchWindow(Toplevel):
         self.after_blocked["timer"] = False
 
     def load_channel_stats(self):
+        """
+
+        :return:
+        """
         self.MatchCanvas.create_text(1416, 45, font=["Ubuntu", 20], tag="Subs")
         self.reload_channel_stats()
 
     def reload_channel_stats(self):
+        """
+
+        :return:
+        """
         channel_list_response = self.youtube.channels().list(mine=True, part='statistics').execute()
         full_text = channel_list_response["items"][0]["statistics"]["subscriberCount"]
         self.MatchCanvas.itemconfigure("Subs", text=full_text)
         self.after(65000, self.reload_channel_stats)
 
     def load_video_stats(self, video_link=""):
+        """
+
+        :param video_link:
+        :return:
+        """
         if video_link[:32] == "https://www.youtube.com/watch?v=":
             video_id = video_link.split("?v=")[1].split("&ab")[0]
         else:
@@ -753,6 +910,10 @@ class MatchWindow(Toplevel):
         self.after(60000, self.reload_video_stats)
 
     def reload_video_stats(self):
+        """
+
+        :return:
+        """
         stats = self.youtube.videos().list(id=self.videos_infos["video_id"], part="statistics").execute()
         video = stats["items"][0]["statistics"]
         self.MatchCanvas.itemconfigure("Views", text=str(video["viewCount"]))
@@ -762,6 +923,12 @@ class MatchWindow(Toplevel):
         print("Stats mises à jour")
 
     def move(self, tag, direction: tuple):
+        """
+
+        :param tag:
+        :param direction:
+        :return:
+        """
         if direction[0] * direction[1] == 0:
             self.MatchCanvas.move(tag, 10 * direction[0], 10 * direction[1])
         else:
@@ -769,6 +936,11 @@ class MatchWindow(Toplevel):
             self.MatchCanvas.itemconfigure(tag, font=[current[0], int(current[1]) + direction[0]])
 
     def play_gif(self, i=True):
+        """
+
+        :param i:
+        :return:
+        """
         self.after_blocked["gif"] = True
         for j in range(self.nb_matches):
             timer_text = self.MatchCanvas.itemcget("timer" + str(j), "text")
@@ -783,11 +955,20 @@ class MatchWindow(Toplevel):
         self.after_blocked["gif"] = False
 
     def playback(self, filename):
+        """
+
+        :param filename:
+        :return:
+        """
         mixer.init()
         mixer.music.load(filename)
         mixer.music.play(10)
 
     def destroy(self):
+        """
+
+        :return:
+        """
         if mixer.get_init():
             mixer.music.stop()
             mixer.quit()
@@ -796,6 +977,10 @@ class MatchWindow(Toplevel):
         Toplevel.destroy(self)
 
     def authenticate(self):
+        """
+
+        :return: None
+        """
         with open("ressources/credentials", 'rb') as f:
             credentials = load(f)
         return googleapiclient.discovery.build("youtube", "v3", credentials=credentials)
@@ -803,7 +988,7 @@ class MatchWindow(Toplevel):
 
 class SetupFrame(Frame):
     """
-    Frmae to set up the MatchWindow and launch it.
+    Frame to set up the MatchWindow and launch it.
     """
     def __init__(self, master: ManagerWindow, **kwargs):
         Frame.__init__(self, master, kwargs)
@@ -828,7 +1013,7 @@ class SetupFrame(Frame):
 
     def change_mode(self):
         """
-        Method called to switch between automatic scheduled display mode and manual display mode
+        Method called to switch between automatic scheduled display mode and manual display mode.
         :return: None
         """
         if not self.auto_on:
