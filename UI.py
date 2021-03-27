@@ -11,6 +11,8 @@ import googleapiclient.discovery
 import requests
 import bs4
 from functools import partial
+
+from googleapiclient.http import MediaFileUpload
 from pygame import mixer
 from time import localtime, strptime, mktime, time
 
@@ -341,7 +343,8 @@ class MatchWindow(Toplevel):
         self.stop_gif = False
         self.afters = {"scores": None, "timer": None, "commentaries": None, "gif": None}
         self.after_blocked = {"scores": False, "timer": False, "commentaries": False, "gif": False}
-        self.videos_infos = {"video_id": None, "title": "", "description": [], "tags": []}
+        self.videos_infos = {"video_id": None, "title": "", "description": [], "tags": [],
+                             "thumbnail": MediaFileUpload("./ressources/images.thumbnail.jpg")}
         self.base_description = ["", "Subscribe! /Abonne-toi!",
                                  "https://www.youtube.com/channel/UCvahkUIQv3F1eYh7BV0CmbQ?sub_confirmation=1", ""]
         self.base_tags = ["foot", "match foot", "foot en direct", "Actu2Foot", "uefa", "match en direct", "direct",
@@ -379,6 +382,8 @@ class MatchWindow(Toplevel):
 
         self.youtube.videos() \
             .update(part="snippet", body=dict(snippet=videos_list_snippet, id=self.videos_infos["video_id"])).execute()
+        self.youtube.thumbnails().set(videoId=self.videos_infos["video_id"],
+                                      media_body=self.videos_infos["thumbnail"]).execute()
 
     def update_video_infos(self, titre="", description=None, tags=None):
         """
