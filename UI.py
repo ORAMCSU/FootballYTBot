@@ -479,7 +479,6 @@ class MatchWindow(Toplevel):
         matches is different.
         :return: None
         """
-        # font_sizes = ((30, 40, 12, (12, 35)), (22, 40, 10, (10, 25)), (20, 35, 8, (7, 20)), (20, 35, 8, (7, 20)))
 
         for j in range(self.nb_matches):
             # sizes and coordinates depend on the number of matches, and are set through experimentation
@@ -528,7 +527,7 @@ class MatchWindow(Toplevel):
 
             elif self.nb_matches == 3:
                 for i in range(2):
-                    self.MatchCanvas.create_text((420 - 375 * (j == 1) + 375 * (j == 2)) * (1 - i) + (1 - 2 * i) * 190 +
+                    self.MatchCanvas.create_text((420 - 375 * (j == 1) + 375 * (j == 2)) * (1 - i) + (1 - 2 * i) * 200 +
                                                  (1120 - 375 * (j == 1) + 375 * (j == 2)) * i, 265 * (j >= 1) + 300,
                                                  font=["Ubuntu", 20],
                                                  fill="white", justify="center", tag="TeamName" + str(2 * j + i))
@@ -562,7 +561,7 @@ class MatchWindow(Toplevel):
                 for i in range(2):
                     self.MatchCanvas.create_text(
                         (420 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
-                        190 + (1120 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i, 265 * (j >= 2) + 300,
+                        200 + (1120 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i, 265 * (j >= 2) + 300,
                         font=["Ubuntu", 20],
                         fill="white", justify="center", tag="TeamName" + str(2 * j + i))
 
@@ -776,6 +775,7 @@ class MatchWindow(Toplevel):
                 if first_url_logo_champ != url_logo_champ:
                     self.displayed_championnat = None
 
+        self.autoadjust_fontsize()
         self.display_championnat()
 
         if self.videos_infos["title"][-1] == "|":
@@ -793,6 +793,33 @@ class MatchWindow(Toplevel):
 
         if self.videos_infos["video_id"]:
             self.update_videos()
+
+    def autoadjust_fontsize(self):
+        """
+        Method called to adjust the font size of the names of the teams.
+        :return: None
+        """
+
+        size_limits = [(13, 18), (12, 18), (9, 15), (9, 15)]
+        adjust_sizes = [[-2, -5, -8, -11, -12, -14], [-1, -3, -5, -7, -8, -9, -9],
+                        [-1, -2, -4, -5, -7, -8, -10], [-1, -2, -4, -5, -7, -8, -10]]
+
+        for j in range(self.nb_matches):
+            for i in range(2):
+                team_name = self.MatchCanvas.itemcget("TeamName"+str(2*j+i), "text")
+                team_name = team_name.split("\n")
+                maxsize = len(max(team_name, key=lambda x: len(x)))
+
+                if size_limits[self.nb_matches-1][1] >= maxsize >= size_limits[self.nb_matches-1][0]:
+                    current_font = self.MatchCanvas.itemcget("TeamName"+str(2*j+i), "font").split(" ")
+                    current_font[1] = int(current_font[1]) + \
+                        adjust_sizes[self.nb_matches-1][maxsize-size_limits[self.nb_matches-1][0]]
+                    self.MatchCanvas.itemconfigure("TeamName"+str(2*j+i), font=current_font)
+                elif size_limits[self.nb_matches-1][1] < maxsize:
+                    current_font = self.MatchCanvas.itemcget("TeamName" + str(2 * j + i), "font").split(" ")
+                    current_font[1] = int(current_font[1]) + \
+                        adjust_sizes[self.nb_matches - 1][maxsize - size_limits[self.nb_matches - 1][0]]
+                    self.MatchCanvas.itemconfigure("TeamName" + str(2 * j + i), font=current_font)
 
     def display_championnat(self):
         """
