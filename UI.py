@@ -163,7 +163,6 @@ class ManagerWindow(Tk):
         if new_urls:
             self.csv_links += new_urls
         with open("ressources/schedule.csv", 'w', newline="") as f:
-            print("ui")
             writer = csv.writer(f, delimiter=',')
             for link in self.csv_links:
                 writer.writerow(link[0::2])
@@ -173,7 +172,7 @@ class ManagerWindow(Tk):
         Method called to prepare to launch a MatchWindow following the schedule.
         :return: None
         """
-        print("Changement de matchs")
+        # print("Changement de matchs")
         i = 0
         url_list = []
         while i < 4 and i < len(self.csv_links) and self.csv_links[i][1] == -1:
@@ -368,7 +367,7 @@ class MatchWindow(Toplevel):
         Method called to trigger the online update of all video info.
         :return: None
         """
-        print(self.videos_infos)
+        # print(self.videos_infos)
 
         # get all the information related to the livestream
         videos_list_response = self.youtube.videos().list(id=self.videos_infos["video_id"], part="snippet").execute()
@@ -727,7 +726,7 @@ class MatchWindow(Toplevel):
             championnat = soup.find("div", class_="info1").text.split("|")[1][1:-1]
             if championnat not in dict_head_description:
                 dict_head_description[championnat] = [""]
-            hashtag = "#" + championnat.lower().replace(" ", "").replace("-", "")
+            hashtag = "#" + championnat.lower().replace(" ", "").replace("-", "").replace(",", "")
 
             # add team hashtags
             if not (hashtag in hashtag_description):
@@ -950,7 +949,7 @@ class MatchWindow(Toplevel):
             for score in soup.find_all(class_="score"):
                 self.MatchCanvas.itemconfigure("score" + str(2 * j + i), text=score.text)
                 i += 1
-        print("Scores mis à jour")
+        # print("Scores mis à jour")
         self.afters["scores"] = self.after(10000, self.reload_match_score)
         self.after_blocked["scores"] = False
 
@@ -972,7 +971,7 @@ class MatchWindow(Toplevel):
                 b = soup.find(id="commentaire").find_all("td")[2].text
                 self.MatchCanvas.itemconfigure("bg" + str(j), fill="#E5E4E1")
                 self.MatchCanvas.itemconfigure("commentaire" + str(j), text=a + " : " + b)
-        print("Commentaires mis à jour")
+        # print("Commentaires mis à jour")
         self.afters["commentaries"] = self.after(60000, self.reload_match_commentaries)
         self.after_blocked["commentaries"] = False
 
@@ -1007,7 +1006,7 @@ class MatchWindow(Toplevel):
 
                 self.MatchCanvas.itemconfigure("timer" + str(j), text=minute_text.strip(" "), font=timer_font)
 
-        print("Timer mis à jour")
+        # print("Timer mis à jour")
         self.afters["timer"] = self.after(60000, self.reload_match_timer)
         self.after_blocked["timer"] = False
 
@@ -1040,7 +1039,7 @@ class MatchWindow(Toplevel):
         else:
             video_id = video_link.split(".be/")[1]
         infos = self.youtube.videos().list(id=video_id, part="snippet").execute()
-        print(infos)
+        # print(infos)
         if infos['pageInfo']['totalResults'] != 0 and infos['items'][0]['snippet']['liveBroadcastContent'] == 'live':
             self.videos_infos["video_id"] = video_id
         else:
@@ -1071,7 +1070,7 @@ class MatchWindow(Toplevel):
         self.MatchCanvas.itemconfigure("Likes", text=str(int(video["likeCount"]) + 1))
 
         self.after(60000, self.reload_video_stats)
-        print("Stats mises à jour")
+        # print("Stats mises à jour")
 
     def move(self, tag: str, direction: tuple):
         """
