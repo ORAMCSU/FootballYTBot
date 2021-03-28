@@ -878,9 +878,13 @@ class MatchWindow(Toplevel):
                                                font=["Ubuntu",
                                                      7 + 3 * (self.nb_matches <= 2) + 2 * (self.nb_matches == 1)])
             else:
-                self.MatchCanvas.itemconfigure("timer" + str(j), text=minute_text.strip(" "),
-                                               font=["Ubuntu", 20 + 5 * (self.nb_matches <= 2)
-                                                     + 10 * (self.nb_matches == 1)])
+                if self.MatchCanvas.itemcget("timer"+str(j), "text") and \
+                        self.MatchCanvas.itemcget("timer"+str(j), "text")[-1] == "'":
+                    timer_font = self.MatchCanvas.itemcget("timer", "font").split(" ")
+                else:
+                    timer_font = ["Ubuntu", 20 + 5 * (self.nb_matches <= 2) + 10 * (self.nb_matches == 1)]
+
+                self.MatchCanvas.itemconfigure("timer" + str(j), text=minute_text.strip(" "), font=timer_font)
 
         print("Timer mis à jour")
         self.afters["timer"] = self.after(60000, self.reload_match_timer)
@@ -888,7 +892,7 @@ class MatchWindow(Toplevel):
 
     def load_channel_stats(self):
         """
-        Method called to
+        Method called to display the number of subscribers to the channel.
         :return: None
         """
         self.MatchCanvas.create_text(1416, 45, font=["Ubuntu", 20], tag="Subs")
