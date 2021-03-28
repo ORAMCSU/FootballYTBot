@@ -255,7 +255,7 @@ class ManagerWindow(Tk):
             match_page = requests.get(link[0])
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
             minute_text = soup.find(class_="status").text
-            if minute_text == "Match terminé":
+            if minute_text in ["Match terminé", "Match annulé", "0"] or minute_text[:6] in [" (déla", "Report"]:
                 link[1] = -2
 
     def timer(self):
@@ -272,8 +272,6 @@ class ManagerWindow(Tk):
             match_page = requests.get(link[0])
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
             minute_text = soup.find(class_="status").text
-            print(minute_text)
-            print("oui")
             if minute_text.split(" ")[0] == "Coup":
                 start = soup.find("div", class_="info1").text.split("|")[0]
                 start = start.split(" ")[1:4] + [start.split(" ")[-2]]
@@ -479,7 +477,6 @@ class MatchWindow(Toplevel):
         matches is different.
         :return: None
         """
-        # font_sizes = ((30, 40, 12, (12, 35)), (22, 40, 10, (10, 25)), (20, 35, 8, (7, 20)), (20, 35, 8, (7, 20)))
 
         for j in range(self.nb_matches):
             # sizes and coordinates depend on the number of matches, and are set through experimentation
@@ -528,7 +525,7 @@ class MatchWindow(Toplevel):
 
             elif self.nb_matches == 3:
                 for i in range(2):
-                    self.MatchCanvas.create_text((420 - 375 * (j == 1) + 375 * (j == 2)) * (1 - i) + (1 - 2 * i) * 190 +
+                    self.MatchCanvas.create_text((420 - 375 * (j == 1) + 375 * (j == 2)) * (1 - i) + (1 - 2 * i) * 200 +
                                                  (1120 - 375 * (j == 1) + 375 * (j == 2)) * i, 265 * (j >= 1) + 300,
                                                  font=["Ubuntu", 20],
                                                  fill="white", justify="center", tag="TeamName" + str(2 * j + i))
@@ -562,7 +559,7 @@ class MatchWindow(Toplevel):
                 for i in range(2):
                     self.MatchCanvas.create_text(
                         (420 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
-                        190 + (1120 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i, 265 * (j >= 2) + 300,
+                        200 + (1120 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i, 265 * (j >= 2) + 300,
                         font=["Ubuntu", 20],
                         fill="white", justify="center", tag="TeamName" + str(2 * j + i))
 
@@ -787,6 +784,7 @@ class MatchWindow(Toplevel):
                 if first_url_logo_champ != url_logo_champ:
                     self.displayed_championnat = None
 
+        self.autoadjust_fontsize()
         self.display_championnat()
 
         # finish to configure video title, description and hashtags
@@ -806,6 +804,36 @@ class MatchWindow(Toplevel):
         # update video infos
         if self.videos_infos["video_id"]:
             self.update_videos()
+
+    def autoadjust_fontsize(self):
+        """
+        Method called to adjust the font size of the names of the teams.
+        :return: None
+        """
+
+        size_limits = [(13, 18), (12, 18), (9, 15), (9, 15)]
+        adjust_sizes = [[-2, -5, -8, -11, -12, -14], [-1, -3, -5, -7, -8, -9, -9],
+                        [-1, -2, -4, -5, -7, -8, -10], [-1, -2, -4, -5, -7, -8, -10]]
+
+        for j in range(self.nb_matches):
+            for i in range(2):
+                # find the longest part of the name of the team and keep its length
+                team_name = self.MatchCanvas.itemcget("TeamName"+str(2*j+i), "text")
+                team_name = team_name.split("\n")
+                maxsize = len(max(team_name, key=lambda x: len(x)))
+
+                # if the maximum size is in the range, associate the right reduction
+                if size_limits[self.nb_matches-1][1] >= maxsize >= size_limits[self.nb_matches-1][0]:
+                    current_font = self.MatchCanvas.itemcget("TeamName"+str(2*j+i), "font").split(" ")
+                    current_font[1] = int(current_font[1]) + \
+                        adjust_sizes[self.nb_matches-1][maxsize-size_limits[self.nb_matches-1][0]]
+                    self.MatchCanvas.itemconfigure("TeamName"+str(2*j+i), font=current_font)
+                # if the maximum size is too important for the tests, stick to the maximal reduction
+                elif size_limits[self.nb_matches-1][1] < maxsize:
+                    current_font = self.MatchCanvas.itemcget("TeamName" + str(2 * j + i), "font").split(" ")
+                    current_font[1] = int(current_font[1]) + \
+                        adjust_sizes[self.nb_matches - 1][-1]
+                    self.MatchCanvas.itemconfigure("TeamName" + str(2 * j + i), font=current_font)
 
     def display_championnat(self):
         """
