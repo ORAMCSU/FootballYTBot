@@ -333,7 +333,7 @@ class MatchWindow(Toplevel):
     Window used for the youtube livestream.
     """
 
-    def __init__(self, master: ManagerWindow, nb_matches, url_list=None, empty_text=""):
+    def __init__(self, master: ManagerWindow, nb_matches: int, url_list=None, empty_text=""):
         Toplevel.__init__(self, master)
         self.youtube = self.authenticate()
         self.master = master
@@ -367,25 +367,27 @@ class MatchWindow(Toplevel):
 
     def update_videos(self):
         """
-
+        Method called to trigger the online update of all video info.
         :return: None
         """
         print(self.videos_infos)
 
+        # get all the information related to the livestream
         videos_list_response = self.youtube.videos().list(id=self.videos_infos["video_id"], part="snippet").execute()
-
         videos_list_snippet = videos_list_response["items"][0]["snippet"]
 
+        # update only the relevant parts
         videos_list_snippet["title"] = self.videos_infos["title"]
         videos_list_snippet["description"] = "\n".join(self.videos_infos["description"])
         videos_list_snippet["tags"] = list(set(self.videos_infos["tags"]))
 
+        # to avoid any bugs, push the whole modified thing
         self.youtube.videos() \
             .update(part="snippet", body=dict(snippet=videos_list_snippet, id=self.videos_infos["video_id"])).execute()
         self.youtube.thumbnails().set(videoId=self.videos_infos["video_id"],
                                       media_body=self.videos_infos["thumbnail"]).execute()
 
-    def update_video_infos(self, titre="", description=None, tags=None):
+    def update_video_info(self, titre="", description=None, tags=None):
         """
         Method called to update the informations of the livestream
         :param titre: new title for the livestream
@@ -401,9 +403,10 @@ class MatchWindow(Toplevel):
 
     def load_bases(self):
         """
-
+        Method to load the very bases of the Canvas (called only at initiation).
         :return: None
         """
+        # Main background
         pil_image = PIL.Image.open("./ressources/images/fond_direct.jpg")
         pil_image2 = pil_image.resize((1536, 864))
         pil_image.close()
@@ -411,7 +414,9 @@ class MatchWindow(Toplevel):
 
         self.MatchCanvas.create_image(770, 434, image=self.displayed_bg, tag="Background")
 
-        pil_image2.close()
+        pil_image2.close()  # Close to make sure memory is free
+
+        # Logo of the channel
         pil_image = PIL.Image.open("./ressources/images/logo.png")
         pil_image2 = pil_image.resize((100, 100))
         pil_image.close()
@@ -421,8 +426,7 @@ class MatchWindow(Toplevel):
 
         pil_image2.close()
 
-        self.load_black()
-
+        # load all the icons related to youtube statistics
         iconlist = ["./ressources/images/youtube.png", "./ressources/images/views.png", "./ressources/images/likes.png"]
         for i in range(3):
             self.MatchCanvas.create_rectangle(1306, 20 + 70 * i, 1486, 70 + 70 * i, fill="white", outline="white")
@@ -438,21 +442,23 @@ class MatchWindow(Toplevel):
 
     def load_black(self):
         """
-
+        Method called to draw the black background
         :return: None
         """
         pil_image = PIL.Image.open("./ressources/images/affiche_vierge.png")
 
+        # different sizes depending on the number of matches
         if self.nb_matches == 1:
             pil_image2 = pil_image.resize((1150, 234))
         elif self.nb_matches == 2:
             pil_image2 = pil_image.resize((875, 195))
-        else:  # self.nb_matches == 3 or self.nb_matches == 4:
+        else:
             pil_image2 = pil_image.resize((700, 156))
         pil_image.close()
         if pil_image2:
             self.displayed_black = PIL.ImageTk.PhotoImage(pil_image2)
 
+        # placement is different according to the number of matches
         for i in range(self.nb_matches):
             if self.nb_matches == 1:
                 self.MatchCanvas.create_image(770, 500, image=self.displayed_black, tag="Black" + str(i))
@@ -469,13 +475,14 @@ class MatchWindow(Toplevel):
 
     def load_match_stats(self):
         """
-
+        Method called to set all the places where things are displayed on the stream. Used every time the number of
+        matches is different.
         :return: None
         """
         # font_sizes = ((30, 40, 12, (12, 35)), (22, 40, 10, (10, 25)), (20, 35, 8, (7, 20)), (20, 35, 8, (7, 20)))
 
         for j in range(self.nb_matches):
-
+            # sizes and coordinates depend on the number of matches, and are set through experimentation
             if self.nb_matches == 1:
                 for i in range(2):
                     self.MatchCanvas.create_text(195 * (1 - i) + (1 - 2 * i) * 300 + 1347 * i, 500, font=["Ubuntu", 30],
@@ -586,16 +593,18 @@ class MatchWindow(Toplevel):
                 self.MatchCanvas.create_oval(720 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 253 + 265 * (j >= 2),
                                              740 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1), 273 + 265 * (j >= 2),
                                              fill="green", tag="gif" + str(j))
+
+        # once places are set, load the actual data
         self.load_match_teams()
         self.reload_match_score()
         self.reload_match_commentaries()
         self.reload_match_timer()
 
-    def change_matches(self, new_urls):
+    def change_matches(self, new_urls: list):
         """
-
-        :param new_urls:
-        :return:
+        Method called when matches rotate without changing their numbers
+        :param new_urls: list of urls with the new matches to display
+        :return: None
         """
         self.match_urls = new_urls
         self.load_match_teams()
@@ -603,28 +612,34 @@ class MatchWindow(Toplevel):
         self.reload_match_commentaries()
         self.reload_match_timer()
 
-    def change_match_number(self, new_number, new_urls, empty_text=""):
+    def change_match_number(self, new_number: int, new_urls: list, empty_text=""):
         """
-
-        :param new_number:
-        :param new_urls:
+        Method called when rotating matches
+        :param new_number: new number of matches to be displayed
+        :param new_urls: list of urls of the new matches to display
         :param empty_text:
-        :return:
+        :return: None
         """
+        # tell the gif process to stop
         self.stop_gif = True
+        # make sure all after methods are currently waiting
         for value in self.after_blocked.values():
             if value:
                 self.after(500, self.change_match_number, new_number, new_urls)
                 return
         self.stop_gif = False
 
+        # cancel all sheduled methods
+        for after_id in self.afters.values():
+            if after_id:
+                self.after_cancel(after_id)
+
+        # erase the championship logo and the message for empty screen
         self.MatchCanvas.delete("Empty")
         self.MatchCanvas.delete("champ")
 
+        # if there is a different number of matches to be displayed, erase all elements not related to the video itself
         if new_number != self.nb_matches:
-            for after_id in self.afters.values():
-                if after_id:
-                    self.after_cancel(after_id)
             for j in range(self.nb_matches):
                 self.MatchCanvas.delete("bg" + str(j))
                 self.MatchCanvas.delete("commentaire" + str(j))
@@ -638,51 +653,56 @@ class MatchWindow(Toplevel):
 
             self.nb_matches = new_number
             self.match_urls = new_urls
+
+            # if there is at least a match to display, call the regular setting functions
             if self.nb_matches:
                 self.load_black()
                 self.load_match_stats()
+                self.play_gif()
+            # if there is no match to display anymore, use the specific method
             else:
                 self.load_empty(empty_text)
 
+        # if only the urls are different, the process is lighter
         elif self.match_urls != new_urls:
-            for after_id in self.afters.values():
-                if after_id:
-                    self.after_cancel(after_id)
             self.change_matches(new_urls)
+            self.play_gif()
 
+        # if there was no match, and there is still none, recreate an empty text with possibly new content
         elif new_number == 0:
             self.load_empty(empty_text)
 
-        self.play_gif()
-
     def load_empty(self, empty_text=""):
         """
-
-        :param empty_text:
-        :return:
+        Method called when there is no match to display. Displays a specific text instead.
+        :param empty_text: sentence to display
+        :return: None
         """
+        # if there is no text, it means there is no match scheduled anymore, display the specific message
         if not empty_text:
             self.MatchCanvas.create_rectangle(350, 400, 1190, 560, fill="white", tag="Empty", width=0)
             self.MatchCanvas.create_text(770, 480, width=800, text="C'est fini pour aujourd'hui.\n" +
                                                                    "Il n'y a plus de match prévus pour ce stream.\n" +
                                                                    "A plus la team!",
                                          justify="center", tag="Empty", font=["Ubuntu", 30])
-            self.update_video_infos("Actu2Foot revient bientôt", self.base_description, self.base_tags)
+            self.update_video_info("Actu2Foot revient bientôt", self.base_description, self.base_tags)
+            # if the livestream was linked to the window, update its information
             if self.videos_infos["video_id"]:
                 self.update_videos()
         else:
             self.MatchCanvas.create_rectangle(350, 450, 1190, 510, fill="white", tag="Empty", width=0)
             self.MatchCanvas.create_text(770, 480, text="Prochain match prévu" + empty_text, tag="Empty",
                                          font=["Ubuntu", 30])
-            self.update_video_infos("[Score en direct] Prochain match prévu" + empty_text, self.base_description,
-                                    self.base_tags)
+            self.update_video_info("[Score en direct] Prochain match prévu" + empty_text, self.base_description,
+                                   self.base_tags)
+            # if the livestream was linked to the window, update its information
             if self.videos_infos["video_id"]:
                 self.update_videos()
 
     def load_match_teams(self):
         """
-
-        :return:
+        Method called to load all the information about the teams playing the match.
+        :return: None
         """
         self.displayed_teamlogos = []
         self.videos_infos["title"] = "[Score en direct]"
@@ -693,6 +713,7 @@ class MatchWindow(Toplevel):
         list_tags = []
 
         for j in range(self.nb_matches):
+            # if the number of matches does not fit the number of urls, return (should not happen anyway)
             if j >= len(self.match_urls):
                 return
 
@@ -775,18 +796,18 @@ class MatchWindow(Toplevel):
 
     def display_championnat(self):
         """
-
-        :return:
+        Method to display the championship of the matches, if all matches belong to the same championship
+        :return: None
         """
         if self.displayed_championnat:
             self.MatchCanvas.create_image(770, 120, image=self.displayed_championnat, tag="champ")
 
     def define_user_comment(self, color="black", text=""):
         """
-
-        :param color:
-        :param text:
-        :return:
+        Method called when it is needed to write a specific message on the stream
+        :param color: string of a color
+        :param text: string containing hte message to display. Empty means message will be erased
+        :return: None
         """
         if text:
             self.MatchCanvas.create_rectangle(370, 820, 1170, 860, fill="white", width=0, tag="white_defined_bg")
@@ -797,8 +818,8 @@ class MatchWindow(Toplevel):
 
     def reload_match_score(self):
         """
-
-        :return:
+        Method called every ten seconds to reload the scores of the matches
+        :return: None
         """
         self.after_blocked["scores"] = True
         for j in range(self.nb_matches):
@@ -814,8 +835,8 @@ class MatchWindow(Toplevel):
 
     def reload_match_commentaries(self):
         """
-
-        :return:
+        Method called every minute to reload the commentaries below the matches
+        :return: None
         """
         self.after_blocked["commentaries"] = True
         for j in range(self.nb_matches):
@@ -836,8 +857,8 @@ class MatchWindow(Toplevel):
 
     def reload_match_timer(self):
         """
-
-        :return:
+        Method called every minute to actualize the timer.
+        :return: None
         """
         self.after_blocked["timer"] = True
         for j in range(self.nb_matches):
@@ -867,16 +888,16 @@ class MatchWindow(Toplevel):
 
     def load_channel_stats(self):
         """
-
-        :return:
+        Method called to
+        :return: None
         """
         self.MatchCanvas.create_text(1416, 45, font=["Ubuntu", 20], tag="Subs")
         self.reload_channel_stats()
 
     def reload_channel_stats(self):
         """
-
-        :return:
+        Method called every 65 seconds to actualize the number of subscribers to the channel.
+        :return: None
         """
         channel_list_response = self.youtube.channels().list(mine=True, part='statistics').execute()
         full_text = channel_list_response["items"][0]["statistics"]["subscriberCount"]
@@ -885,9 +906,9 @@ class MatchWindow(Toplevel):
 
     def load_video_stats(self, video_link=""):
         """
-
-        :param video_link:
-        :return:
+        Method called to assert if the video is a livestream, then update the number of likes and views.
+        :param video_link: url of the livestream
+        :return: None
         """
         if video_link[:32] == "https://www.youtube.com/watch?v=":
             video_id = video_link.split("?v=")[1].split("&ab")[0]
@@ -916,8 +937,8 @@ class MatchWindow(Toplevel):
 
     def reload_video_stats(self):
         """
-
-        :return:
+        Method called every minute to actualize the number of like and views of the livestream
+        :return: None
         """
         stats = self.youtube.videos().list(id=self.videos_infos["video_id"], part="statistics").execute()
         video = stats["items"][0]["statistics"]
@@ -927,12 +948,12 @@ class MatchWindow(Toplevel):
         self.after(60000, self.reload_video_stats)
         print("Stats mises à jour")
 
-    def move(self, tag, direction: tuple):
+    def move(self, tag: str, direction: tuple):
         """
-
-        :param tag:
-        :param direction:
-        :return:
+        Method called to move text elements (timers and team names) and adjust the font size
+        :param tag: tag given to the element to move
+        :param direction: 2 int tuple indicating how to move the text on a 2D base
+        :return: None
         """
         if direction[0] * direction[1] == 0:
             self.MatchCanvas.move(tag, 10 * direction[0], 10 * direction[1])
@@ -942,9 +963,9 @@ class MatchWindow(Toplevel):
 
     def play_gif(self, i=True):
         """
-
-        :param i:
-        :return:
+        Method called to play the timer gif
+        :param i: boolean indicating if the image is displayed of hidden
+        :return: None
         """
         self.after_blocked["gif"] = True
         for j in range(self.nb_matches):
@@ -959,11 +980,11 @@ class MatchWindow(Toplevel):
             self.afters["gif"] = None
         self.after_blocked["gif"] = False
 
-    def playback(self, filename):
+    def playback(self, filename: str):
         """
-
-        :param filename:
-        :return:
+        Method called to play an audio file in the window. Loops it 10 times before stopping.
+        :param filename: absolute path to the audio file
+        :return: None
         """
         mixer.init()
         mixer.music.load(filename)
@@ -971,8 +992,9 @@ class MatchWindow(Toplevel):
 
     def destroy(self):
         """
-
-        :return:
+        Overriden method that makes sure the audio player is off before destroying self. Erases its reference in the
+        master.
+        :return: None
         """
         if mixer.get_init():
             mixer.music.stop()
@@ -983,8 +1005,8 @@ class MatchWindow(Toplevel):
 
     def authenticate(self):
         """
-
-        :return: None
+        Method called once to identify the application to youtube
+        :return: identifiers to handle youtube-specific requests
         """
         with open("ressources/credentials", 'rb') as f:
             credentials = load(f)
