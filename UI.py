@@ -505,7 +505,7 @@ class MatchWindow(Toplevel):
 
             elif self.nb_matches == 2:
                 for i in range(2):
-                    self.MatchCanvas.create_text(333 * (1 - i) + (1 - 2 * i) * 220 + 1217 * i, 300 * j + 320,  # -30
+                    self.MatchCanvas.create_text(333 * (1 - i) + (1 - 2 * i) * 240 + 1217 * i, 300 * j + 320,  # -30
                                                  font=["Ubuntu", 22],
                                                  fill="white", justify="center", tag="TeamName" + str(2 * j + i))
 
