@@ -342,7 +342,7 @@ class MatchWindow(Toplevel):
         self.afters = {"scores": None, "timer": None, "commentaries": None, "gif": None}
         self.after_blocked = {"scores": False, "timer": False, "commentaries": False, "gif": False}
         self.videos_infos = {"video_id": None, "title": "", "description": [], "tags": [],
-                             "thumbnail": MediaFileUpload("./ressources/images/thumbnail.jpg")}
+                             "thumbnail": MediaFileUpload("./ressources/images/thumbnail_empty.png")}
         self.base_description = ["", "Subscribe! /Abonne-toi!",
                                  "https://www.youtube.com/channel/UCvahkUIQv3F1eYh7BV0CmbQ?sub_confirmation=1", ""]
         self.base_tags = ["foot", "match foot", "foot en direct", "Actu2Foot", "uefa", "match en direct", "direct",
@@ -683,6 +683,8 @@ class MatchWindow(Toplevel):
                                                                    "A plus la team!",
                                          justify="center", tag="Empty", font=["Ubuntu", 30])
             self.update_video_info("Actu2Foot revient bientôt", self.base_description, self.base_tags)
+            # change the thumbnail to empty stream thumbnail
+            self.videos_infos["thumbnail"] = MediaFileUpload("./ressources/images/thumbnail_empty.png")
             # if the livestream was linked to the window, update its information
             if self.videos_infos["video_id"]:
                 self.update_videos()
@@ -801,9 +803,87 @@ class MatchWindow(Toplevel):
         self.videos_infos["description"] = head_description + self.base_description + hashtag_description
         self.videos_infos["tags"] = self.base_tags + list_tags
 
+        # generate the thumbnail with the new teams and set it in video_infos
+        self.create_thumbnail()
+        self.videos_infos["thumbnail"] = MediaFileUpload("./ressources/images/thumbnail.png")
         # update video infos
         if self.videos_infos["video_id"]:
             self.update_videos()
+
+    def create_thumbnail(self):
+        """
+        Method that creates the new thumbnail to set for the livestream.
+        :return: None
+        """
+        image = PIL.Image.new(mode='RGBA', size=(700, 350), color=(0, 0, 0, 0))
+
+        background = PIL.Image.open("./ressources/images/fond_thumbnail.jpg").resize((700, 350), PIL.Image.ANTIALIAS)
+        image.paste(background, (0, 0))
+        background.close()
+
+        score = PIL.Image.open("./ressources/images/score_en_direct.png").resize((494, 118), PIL.Image.ANTIALIAS)
+        image.paste(score, (103, 10), score)
+        score.close()
+
+        if self.nb_matches >= 2:
+            separator = PIL.Image.open("./ressources/images/horizontal_separator.png").resize((500, 5),
+                                                                                              PIL.Image.ANTIALIAS)
+            image.paste(separator, (100, 230))
+            separator.close()
+
+            if self.nb_matches == 4:
+                separator = PIL.Image.open("./ressources/images/vertical_separator.png").resize((5, 200),
+                                                                                                PIL.Image.ANTIALIAS)
+                image.paste(separator, (343, 140))
+                separator.close()
+
+        if self.nb_matches == 1:
+            vs = PIL.Image.open("./ressources/images/vs.png").resize((120, 118), PIL.Image.ANTIALIAS)
+        else:
+            vs = PIL.Image.open("./ressources/images/vs.png").resize((80, 78), PIL.Image.ANTIALIAS)
+
+        for j in range(self.nb_matches):
+            for i in range(2):
+                if self.nb_matches == 1:
+                    logo_image = PIL.ImageTk.getimage(self.displayed_teamlogos[2*j+i])
+                else:
+                    logo_image = PIL.ImageTk.getimage(self.displayed_teamlogos[2 * j + i]).resize((80, 80),
+                                                                                                  PIL.Image.ANTIALIAS)
+
+                if self.nb_matches == 1:
+                    x = -64+164*(1-2*i)+700*i
+                    y = 180
+                elif self.nb_matches == 2:
+                    x = -40 + 200 * (1 - 2 * i) + 700 * i
+                    y = 130 + j*120
+                elif self.nb_matches == 3:
+                    x = -40 + 250 * (1 - 2 * i) + 700 * i - 175*(j == 1) + 175*(j == 2)
+                    y = 130 + (j >= 1) * 120
+                else:
+                    x = -40 + 250 * (1 - 2 * i) + 700 * i - 175*(j % 2 == 0) + 175*(j % 2 == 1)
+                    y = 130 + (j >= 2) * 120
+
+                image.paste(logo_image, (x, y), logo_image)
+                logo_image.close()
+
+            if self.nb_matches == 1:
+                x = 290
+                y = 184
+            elif self.nb_matches == 2:
+                x = 310
+                y = 131 + j*120
+            elif self.nb_matches == 3:
+                x = 310 - 175*(j == 1) + 175*(j == 2)
+                y = 131 + (j >= 1)*120
+            else:
+                x = 310 - 175*(j % 2 == 0) + 175*(j % 2 == 1)
+                y = 131 + (j >= 2) * 120
+
+            image.paste(vs, (x, y), vs)
+
+        image.save("./ressources/images/thumbnail.png", "PNG")
+        vs.close()
+        image.close()
 
     def autoadjust_fontsize(self):
         """
