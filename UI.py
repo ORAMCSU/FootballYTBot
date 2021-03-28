@@ -344,7 +344,7 @@ class MatchWindow(Toplevel):
         self.afters = {"scores": None, "timer": None, "commentaries": None, "gif": None}
         self.after_blocked = {"scores": False, "timer": False, "commentaries": False, "gif": False}
         self.videos_infos = {"video_id": None, "title": "", "description": [], "tags": [],
-                             "thumbnail": MediaFileUpload("./ressources/images.thumbnail.jpg")}
+                             "thumbnail": MediaFileUpload("./ressources/images/thumbnail.jpg")}
         self.base_description = ["", "Subscribe! /Abonne-toi!",
                                  "https://www.youtube.com/channel/UCvahkUIQv3F1eYh7BV0CmbQ?sub_confirmation=1", ""]
         self.base_tags = ["foot", "match foot", "foot en direct", "Actu2Foot", "uefa", "match en direct", "direct",
