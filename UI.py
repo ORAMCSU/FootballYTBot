@@ -255,7 +255,7 @@ class ManagerWindow(Tk):
             match_page = requests.get(link[0])
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
             minute_text = soup.find(class_="status").text
-            if minute_text == "Match terminé":
+            if minute_text in ["Match terminé", "Match annulé", "0"] or minute_text[:6] in [" (déla", "Report"]:
                 link[1] = -2
 
     def timer(self):
@@ -272,8 +272,6 @@ class ManagerWindow(Tk):
             match_page = requests.get(link[0])
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
             minute_text = soup.find(class_="status").text
-            print(minute_text)
-            print("oui")
             if minute_text.split(" ")[0] == "Coup":
                 start = soup.find("div", class_="info1").text.split("|")[0]
                 start = start.split(" ")[1:4] + [start.split(" ")[-2]]
@@ -806,19 +804,22 @@ class MatchWindow(Toplevel):
 
         for j in range(self.nb_matches):
             for i in range(2):
+                # find the longest part of the name of the team and keep its length
                 team_name = self.MatchCanvas.itemcget("TeamName"+str(2*j+i), "text")
                 team_name = team_name.split("\n")
                 maxsize = len(max(team_name, key=lambda x: len(x)))
 
+                # if the maximum size is in the range, associate the right reduction
                 if size_limits[self.nb_matches-1][1] >= maxsize >= size_limits[self.nb_matches-1][0]:
                     current_font = self.MatchCanvas.itemcget("TeamName"+str(2*j+i), "font").split(" ")
                     current_font[1] = int(current_font[1]) + \
                         adjust_sizes[self.nb_matches-1][maxsize-size_limits[self.nb_matches-1][0]]
                     self.MatchCanvas.itemconfigure("TeamName"+str(2*j+i), font=current_font)
+                # if the maximum size is too important for the tests, stick to the maximal reduction
                 elif size_limits[self.nb_matches-1][1] < maxsize:
                     current_font = self.MatchCanvas.itemcget("TeamName" + str(2 * j + i), "font").split(" ")
                     current_font[1] = int(current_font[1]) + \
-                        adjust_sizes[self.nb_matches - 1][maxsize - size_limits[self.nb_matches - 1][0]]
+                        adjust_sizes[self.nb_matches - 1][-1]
                     self.MatchCanvas.itemconfigure("TeamName" + str(2 * j + i), font=current_font)
 
     def display_championnat(self):
