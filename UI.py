@@ -717,19 +717,27 @@ class MatchWindow(Toplevel):
             if j >= len(self.match_urls):
                 return
 
+            # initialise match title, description and hashtags
             match_title = " "
             match_head_description = ""
+
             match_page = requests.get(self.match_urls[j])
             soup = bs4.BeautifulSoup(match_page.text, "html.parser")
+
+            # add championship hashtags
             championnat = soup.find("div", class_="info1").text.split("|")[1][1:-1]
             if championnat not in dict_head_description:
                 dict_head_description[championnat] = [""]
             hashtag = "#" + championnat.lower().replace(" ", "").replace("-", "")
+
+            # add team hashtags
             if not (hashtag in hashtag_description):
                 hashtag_description.append(hashtag)
             tag = championnat.lower()
             if not (tag in list_tags):
                 list_tags.append(tag)
+
+            # display team names on the MatchWindow
             i = 0
             for div in soup.find_all("div", class_="col-xs-4 text-center team"):
                 self.MatchCanvas.itemconfigure("TeamName" + str(2 * j + i), text=div.text[1:-1].replace(" ", "\n"))
@@ -744,18 +752,20 @@ class MatchWindow(Toplevel):
                     match_head_description += " - "
                 i += 1
 
+            # configure video description
             match_head_description += " | [Score en direct]"
             dict_head_description[championnat].append(match_head_description)
 
+            # configure match title
             if j != (self.nb_matches - 1):
                 match_title += " |"
-
             if len(self.videos_infos["title"] + match_title) <= 100:
                 self.videos_infos["title"] += match_title
             elif self.videos_infos["title"][0:18] == "[Score en direct]" and \
                     len(self.videos_infos["title"][18:] + match_title) <= 100:
                 self.videos_infos["title"] = self.videos_infos["title"][18:] + match_title
 
+            # display team logos on the MatchWindow
             i = 0
             for div in soup.find_all("div", class_="col-xs-4 text-center"):
                 full_url = "https://www.matchendirect.fr" + div.find("img")["src"].replace("/96/", "/128/")
@@ -764,6 +774,7 @@ class MatchWindow(Toplevel):
                 self.MatchCanvas.itemconfigure("Teamlogo" + str(2 * j + i), image=self.displayed_teamlogos[2 * j + i])
                 i += 1
 
+            # check if all the matchs are from the same championship
             url_logo_champ = "https://www.matchendirect.fr" + \
                              soup.find("div", class_="col-xs-4 text-center imgfootball").find("img")["src"]
 
@@ -778,6 +789,7 @@ class MatchWindow(Toplevel):
 
         self.display_championnat()
 
+        # finish to configure video title, description and hashtags
         if self.videos_infos["title"][-1] == "|":
             self.videos_infos["title"] = self.videos_infos["title"][:-1]
 
@@ -791,6 +803,7 @@ class MatchWindow(Toplevel):
         self.videos_infos["description"] = head_description + self.base_description + hashtag_description
         self.videos_infos["tags"] = self.base_tags + list_tags
 
+        # update video infos
         if self.videos_infos["video_id"]:
             self.update_videos()
 
@@ -1029,14 +1042,17 @@ class SetupFrame(Frame):
         self.auto_on = False
 
         # number of matches and auto mode
-        self.ModeButton = Checkbutton(self, text="Mode Automatique", command=self.change_mode, bg='#4E4E4E')
+        self.ModeButton = Checkbutton(self, text="Mode Automatique", command=self.change_mode, bg='#4E4E4E',
+                                      activebackground='#4E4E4E', fg='white', activeforeground='white',
+                                      selectcolor='#4E4E4E')
         self.MatchButton = Button(self, text="Lancer le suivi", command=self.launch_match, bg='#4E4E4E', fg='white')
-        self.NumberRoll = Spinbox(self, from_=1, to=4, bg='#4E4E4E', fg='white')
+        self.NumberRoll = Spinbox(self, from_=1, to=4, bg='#4E4E4E', fg='white', justify='center',
+                                  buttonbackground='#4E4E4E')
         self.NumberButton = Button(self, text="Valider", command=self.generate_urls, width=10, bg='#4E4E4E', fg='white')
         self.Schedule = Button(self, text="Schedule", command=self.launch_schedule, width=10, bg='#4E4E4E', fg='white')
 
         self.ModeButton.grid(row=0, column=1, padx=10, pady=10)
-        Label(self, text="Nombre de matches: ", width=20, bg='#4E4E4E', fg='white').grid(row=1, column=0)
+        Label(self, text="Importance du match: ", width=20, bg='#4E4E4E', fg='white').grid(row=1, column=0)
         self.NumberRoll.grid(row=1, column=1, padx=10, pady=10)
         self.NumberButton.grid(row=1, column=2, padx=10, pady=10)
 
@@ -1098,11 +1114,13 @@ class SetupFrame(Frame):
                 for i in range(number - self.old_number):
                     self.url_entries.append([Entry(self, width=70, bg='#6b6b6b', fg='white'),
                                              Scale(self, orient="horizontal", from_=2, to=0,
-                                                   length=50, showvalue='yes', sliderlength=20, background="#4E4E4E",
-                                                   bd="0p", fg="red", bg="#4E4E4E", borderwidth=0)])
+                                                   length=50, showvalue='no', sliderlength=20, background="#4E4E4E",
+                                                   bd=0, fg="red", highlightbackground="#4E4E4E",
+                                                   bg="#4E4E4E", borderwidth=0, activebackground='#4E4E4E')])
                     self.url_entries[self.old_number + i][0].grid(row=self.old_number + 2 + i, column=1, padx=10,
                                                                   pady=10)
                     self.url_entries[self.old_number + i][1].grid(row=self.old_number + 2 + i, column=0)
+                    self.url_entries[self.old_number + i][1].set(2)
             else:
                 for i in range(self.old_number - number):
                     self.url_entries[number + i][0].destroy()
