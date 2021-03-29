@@ -160,13 +160,26 @@ class ManagerWindow(Tk):
         """
         if not self.csv_links and not empty:
             self.load_from_csv(False)
+
+        # if there are new urls, sort them in the timer and redo the schedule
         if new_urls:
             self.csv_links += new_urls
+            self.timer()
+            for block in self.after_blocked.values():
+                if block:
+                    self.after(500, self.load_to_csv, new_urls, empty)
+                    return
+
+            for after in self.afters.values():
+                if after:
+                    self.after_cancel(after)
+            self.waiter()
+
         with open("ressources/schedule.csv", 'w', newline="") as f:
-            print("ui")
             writer = csv.writer(f, delimiter=',')
             for link in self.csv_links:
                 writer.writerow(link[0::2])
+        print(self.csv_links)
 
     def csv_match(self):
         """
@@ -269,25 +282,26 @@ class ManagerWindow(Tk):
         now = int(time() // 60)  # current time in minutes
 
         for link in self.csv_links:
-            match_page = requests.get(link[0])
-            soup = bs4.BeautifulSoup(match_page.text, "html.parser")
-            minute_text = soup.find(class_="status").text
-            if minute_text.split(" ")[0] == "Coup":
-                start = soup.find("div", class_="info1").text.split("|")[0]
-                start = start.split(" ")[1:4] + [start.split(" ")[-2]]
-                start[1] = time_conv[start[1]]
-                cast_time = strptime(str(start), "['%d', %m, '%Y', '%Hh%M']")
-                cast_time = int(mktime(cast_time) // 60)
-                if cast_time - 5 < now:
-                    link[1] = -1
+            if not link[1]:
+                match_page = requests.get(link[0])
+                soup = bs4.BeautifulSoup(match_page.text, "html.parser")
+                minute_text = soup.find(class_="status").text
+                if minute_text.split(" ")[0] == "Coup":
+                    start = soup.find("div", class_="info1").text.split("|")[0]
+                    start = start.split(" ")[1:4] + [start.split(" ")[-2]]
+                    start[1] = time_conv[start[1]]
+                    cast_time = strptime(str(start), "['%d', %m, '%Y', '%Hh%M']")
+                    cast_time = int(mktime(cast_time) // 60)
+                    if cast_time - 5 < now:
+                        link[1] = -1
+                    else:
+                        link[1] = cast_time
+                elif minute_text == " Mi-temps":
+                    link[1] = -1  # match ongoing
+                elif minute_text in ["Match terminé", "Match annulé", "0"] or minute_text[:6] in [" (déla", "Report"]:
+                    link[1] = -2
                 else:
-                    link[1] = cast_time
-            elif minute_text == " Mi-temps":
-                link[1] = -1  # match ongoing
-            elif minute_text in ["Match terminé", "Match annulé", "0"] or minute_text[:6] in [" (déla", "Report"]:
-                link[1] = -2
-            else:
-                link[1] = -1  # match ongoing
+                    link[1] = -1  # match ongoing
 
         self.csv_links.sort(key=self.sortlinks_key)
 
@@ -559,7 +573,7 @@ class MatchWindow(Toplevel):
                 for i in range(2):
                     self.MatchCanvas.create_text(
                         (420 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * (1 - i) + (1 - 2 * i) *
-                        200 + (1120 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i, 265 * (j >= 2) + 300,
+                        195 + (1120 - 375 * (j % 2 == 0) + 375 * (j % 2 == 1)) * i, 265 * (j >= 2) + 300,
                         font=["Ubuntu", 20],
                         fill="white", justify="center", tag="TeamName" + str(2 * j + i))
 
@@ -614,7 +628,7 @@ class MatchWindow(Toplevel):
         Method called when rotating matches
         :param new_number: new number of matches to be displayed
         :param new_urls: list of urls of the new matches to display
-        :param empty_text:
+        :param empty_text: text to display
         :return: None
         """
         # tell the gif process to stop
@@ -908,6 +922,7 @@ class MatchWindow(Toplevel):
                     current_font[1] = int(current_font[1]) + \
                         adjust_sizes[self.nb_matches-1][maxsize-size_limits[self.nb_matches-1][0]]
                     self.MatchCanvas.itemconfigure("TeamName"+str(2*j+i), font=current_font)
+
                 # if the maximum size is too important for the tests, stick to the maximal reduction
                 elif size_limits[self.nb_matches-1][1] < maxsize:
                     current_font = self.MatchCanvas.itemcget("TeamName" + str(2 * j + i), "font").split(" ")
