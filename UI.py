@@ -175,7 +175,7 @@ class ManagerWindow(Tk):
                     self.after_cancel(after)
             self.waiter()
 
-        with open("ressources/schedule.csv", 'w', newline="") as f:
+        with open("ressources/schedule.sv", 'w', newline="") as f:
             writer = csv.writer(f, delimiter=',')
             for link in self.csv_links:
                 writer.writerow(link[0::2])
