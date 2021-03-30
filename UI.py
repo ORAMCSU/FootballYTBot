@@ -165,6 +165,7 @@ class ManagerWindow(Tk):
         if new_urls:
             self.csv_links += new_urls
             self.timer()
+            self.clean_list()
             for block in self.after_blocked.values():
                 if block:
                     self.after(500, self.load_to_csv, new_urls, empty)
