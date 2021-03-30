@@ -173,9 +173,11 @@ class ManagerWindow(Tk):
             for after in self.afters.values():
                 if after:
                     self.after_cancel(after)
-            self.waiter()
 
-        with open("ressources/schedule.sv", 'w', newline="") as f:
+            if self.is_stream_on():
+                self.waiter()
+
+        with open("ressources/schedule.csv", 'w', newline="") as f:
             writer = csv.writer(f, delimiter=',')
             for link in self.csv_links:
                 writer.writerow(link[0::2])
@@ -1014,10 +1016,9 @@ class MatchWindow(Toplevel):
             else:
                 if self.MatchCanvas.itemcget("timer"+str(j), "text") and \
                         self.MatchCanvas.itemcget("timer"+str(j), "text")[-1] == "'":
-                    timer_font = self.MatchCanvas.itemcget("timer", "font").split(" ")
+                    timer_font = self.MatchCanvas.itemcget("timer"+str(j), "font").split(" ")
                 else:
                     timer_font = ["Ubuntu", 20 + 5 * (self.nb_matches <= 2) + 10 * (self.nb_matches == 1)]
-
                 self.MatchCanvas.itemconfigure("timer" + str(j), text=minute_text.strip(" "), font=timer_font)
 
         # print("Timer mis à jour")
