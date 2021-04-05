@@ -1163,11 +1163,6 @@ class MatchWindow(Toplevel):
             credentials = flow.run_console()
             with open("CREDENTIALS_PICKLE_FILE", 'wb') as f:
                 pickle.dump(credentials, f)
-        return googleapiclient.discovery.build(
-            "youtube", "v3", credentials=credentials)
-
-        with open("ressources/credentials", 'rb') as f:
-            credentials = load(f)
         return googleapiclient.discovery.build("youtube", "v3", credentials=credentials)
 
 
