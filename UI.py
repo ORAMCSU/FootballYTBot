@@ -1,4 +1,6 @@
 import csv
+import os
+import pickle
 from pickle import load
 from tkinter import *
 from tkinter import colorchooser
@@ -7,6 +9,7 @@ from tkinter.filedialog import askopenfilename
 from tkinter.messagebox import showerror
 import PIL.ImageTk
 import PIL.Image
+import google_auth_oauthlib
 import googleapiclient.discovery
 import requests
 import bs4
@@ -1066,6 +1069,7 @@ class MatchWindow(Toplevel):
         self.update_videos()
 
         stats = self.youtube.videos().list(id=self.videos_infos["video_id"], part="statistics").execute()
+        print(stats)
         video = stats["items"][0]["statistics"]
 
         self.MatchCanvas.create_text(1416, 115, text=str(video["viewCount"]),
@@ -1148,6 +1152,20 @@ class MatchWindow(Toplevel):
         Method called once to identify the application to youtube
         :return: identifiers to handle youtube-specific requests
         """
+        scopes = ["https://www.googleapis.com/auth/youtube"]
+        client_secrets_file = "client_secret.json"
+
+        if os.path.exists("CREDENTIALS_PICKLE_FILE"):
+            with open("CREDENTIALS_PICKLE_FILE", 'rb') as f:
+                credentials = pickle.load(f)
+        else:
+            flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(client_secrets_file, scopes)
+            credentials = flow.run_console()
+            with open("CREDENTIALS_PICKLE_FILE", 'wb') as f:
+                pickle.dump(credentials, f)
+        return googleapiclient.discovery.build(
+            "youtube", "v3", credentials=credentials)
+
         with open("ressources/credentials", 'rb') as f:
             credentials = load(f)
         return googleapiclient.discovery.build("youtube", "v3", credentials=credentials)
