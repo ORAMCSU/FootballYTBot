@@ -1,7 +1,6 @@
 import csv
 import os
 import pickle
-from pickle import load
 from tkinter import *
 from tkinter import colorchooser
 from tkinter.ttk import Separator
