@@ -1,1 +1,1 @@
-Creation of a stremin bot for YouTube using YouTube API.
+Creation of a streaming bot for YouTube using YouTube API.
