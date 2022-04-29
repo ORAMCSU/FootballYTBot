@@ -1,4 +1,4 @@
-# football_stream
+# FootballYTBot
 
 ## English
 
